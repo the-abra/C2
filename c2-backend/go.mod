@@ -1,0 +1,12 @@
+module c2-backend
+
+go 1.26.3
+
+require (
+	github.com/gorilla/mux v1.8.1
+	github.com/gorilla/websocket v1.5.3
+	github.com/mattn/go-sqlite3 v1.14.44
+	github.com/rs/cors v1.11.1
+)
+
+require github.com/creack/pty v1.1.24

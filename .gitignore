@@ -1,0 +1,70 @@
+# --- OS Metadata ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- IDEs & Editors ---
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# --- Environment & Secrets ---
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+certs/
+
+# --- Go (Backend) ---
+c2-backend/c2-server
+c2-backend/server
+c2-backend/cmd/server/main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+c2-backend/vendor/
+
+# --- Database & Evidence (STRICT) ---
+*.sqlite
+*.sqlite-journal
+*.sqlite3
+c2-backend/data/c2.sqlite
+c2-backend/data/targets/*
+c2-backend/data/uploads/*
+!c2-backend/data/targets/.gitkeep
+!c2-backend/data/uploads/.gitkeep
+
+# --- Node / React (Frontend) ---
+c2-frontend/node_modules/
+c2-frontend/.next/
+c2-frontend/out/
+c2-frontend/build/
+c2-frontend/dist/
+c2-frontend/.cache/
+c2-frontend/tsconfig.tsbuildinfo
+c2-frontend/npm-debug.log*
+c2-frontend/yarn-debug.log*
+c2-frontend/yarn-error.log*
+c2-frontend/.pnpm-debug.log*
+
+# --- Project Specific ---
+opt/
+temp/
+scratch/
+logs/
+*.log
