@@ -9,8 +9,9 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -50,11 +51,37 @@ func (h *Handler) GetTools(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var res []ToolResponse
+	seen := make(map[string]bool)
+
 	for _, t := range tools {
-		_, err := exec.LookPath(t.DefaultBinaryName)
+		lowerName := strings.ToLower(t.Name)
+		if seen[lowerName] {
+			continue
+		}
+		seen[lowerName] = true
+
+		binaryName := strings.ToLower(t.DefaultBinaryName)
+		_, err := exec.LookPath(binaryName)
+		isInstalled := err == nil
+
+		// Fallback check for common paths if not in $PATH
+		if !isInstalled {
+			fallbacks := []string{
+				"/usr/bin/vendor_perl/" + binaryName,
+				"/usr/local/bin/" + binaryName,
+				"/usr/bin/" + binaryName,
+			}
+			for _, p := range fallbacks {
+				if _, err := os.Stat(p); err == nil {
+					isInstalled = true
+					break
+				}
+			}
+		}
+
 		res = append(res, ToolResponse{
 			Tool:        t,
-			IsInstalled: err == nil,
+			IsInstalled: isInstalled,
 		})
 	}
 	json.NewEncoder(w).Encode(res)
@@ -118,6 +145,7 @@ func (h *Handler) RunTool(w http.ResponseWriter, r *http.Request) {
 		wsWriter := &ws.WSWriter{Hub: h.Hub, ToolName: binary}
 		multi := io.MultiWriter(file, wsWriter)
 		err := h.Engine.Execute(ctx, binary, profile.Args, resolvedTarget, multi, multi)
+		wsWriter.Close()
 
 		status := "completed"
 		if err != nil {
@@ -158,6 +186,16 @@ func (h *Handler) SaveNote(w http.ResponseWriter, r *http.Request) {
 	}
 	h.Store.SaveNote(req.Target, req.Content)
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *Handler) GetAIConfigs(w http.ResponseWriter, r *http.Request) {
+	configs, err := h.Store.GetAIConfigs()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(configs)
 }
 
 func (h *Handler) SaveAIKey(w http.ResponseWriter, r *http.Request) {

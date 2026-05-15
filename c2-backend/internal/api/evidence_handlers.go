@@ -34,18 +34,18 @@ func (h *Handler) GetFilesTree(w http.ResponseWriter, r *http.Request) {
 			targetName := entry.Name()
 			targetPath := filepath.Join(targetsDir, targetName)
 			files, err := os.ReadDir(targetPath)
+			fileNodes := []FileNode{} // Ensure it's never nil
 			if err == nil {
-				var fileNodes []FileNode
 				for _, f := range files {
-					if !f.IsDir() && filepath.Ext(f.Name()) == ".txt" {
+					if !f.IsDir() && (filepath.Ext(f.Name()) == ".txt" || filepath.Ext(f.Name()) == ".log") {
 						fileNodes = append(fileNodes, FileNode{
 							Name: f.Name(),
 							Type: "file",
 						})
 					}
 				}
-				tree[targetName] = fileNodes
 			}
+			tree[targetName] = fileNodes
 		}
 	}
 

@@ -142,14 +142,14 @@ export function EvidenceModal({ isOpen, onClose, backendUrl, selectedEvidenceFil
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       
-      {/* Modal Container - Locked to 35vw */}
-      <div className="relative w-[35vw] h-[70vh] bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden flex flex-col">
+      {/* Modal Container - Locked to 70vw */}
+      <div className="relative w-[70vw] h-[70vh] bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden flex flex-col">
         
         {/* Main Body - 30/70 Split */}
         <div className="flex-1 flex overflow-hidden">
           
-          {/* Sidebar - 30% */}
-          <div className="w-[30%] border-r border-zinc-800 flex flex-col bg-zinc-950">
+          {/* Sidebar - 35% */}
+          <div className="w-[35%] border-r border-zinc-800 flex flex-col bg-zinc-950">
             <div className="p-3 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
               <span className="font-bold text-[10px] tracking-widest text-zinc-400 uppercase">Evidence Explorer</span>
               <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-zinc-800" onClick={fetchTree}>
@@ -181,7 +181,9 @@ export function EvidenceModal({ isOpen, onClose, backendUrl, selectedEvidenceFil
                         
                         {isOpen && (
                           <div className="ml-4 mt-0.5 space-y-0.5 border-l border-zinc-800/50 pl-2">
-                            {files.map((file) => {
+                            {files.length === 0 ? (
+                              <div className="text-[9px] text-zinc-700 py-1 px-2 italic uppercase">No files found</div>
+                            ) : files.map((file) => {
                               const isSelected = selectedFile?.target === target && selectedFile?.file === file.name
                               const isAttached = !!selectedEvidenceFiles.find(f => f.target === target && f.filename === file.name)
                               return (
@@ -221,8 +223,8 @@ export function EvidenceModal({ isOpen, onClose, backendUrl, selectedEvidenceFil
             </ScrollArea>
           </div>
 
-          {/* Content - 70% */}
-          <div className="w-[70%] flex flex-col h-full bg-black overflow-hidden relative">
+          {/* Content - 65% */}
+          <div className="w-[65%] flex flex-col h-full bg-black overflow-hidden relative">
             {selectedFile ? (
               <>
                 <div className="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between">
@@ -249,7 +251,7 @@ export function EvidenceModal({ isOpen, onClose, backendUrl, selectedEvidenceFil
                     }}>
                       <Download className="size-3" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-500 hover:text-red-400" onClick={() => setSelectedFile(null)}>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-500 hover:text-red-400" onClick={onClose}>
                       <X className="size-3" />
                     </Button>
                   </div>

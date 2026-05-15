@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Radar, Globe, Zap, Terminal, Shield, Bot, Layout } from 'lucide-react'
+import { ChevronDown, Radar, Globe, Zap, Terminal, Shield, Bot, Layout, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
@@ -33,6 +33,7 @@ interface SidebarProps {
   backendUrl: string
   onOpenAI: () => void
   onOpenShell: () => void
+  onOpenHistory: () => void
   selectedEvidenceCount: number
 }
 
@@ -44,6 +45,7 @@ export function Sidebar({
   backendUrl, 
   onOpenAI,
   onOpenShell,
+  onOpenHistory,
   selectedEvidenceCount
 }: SidebarProps) {
   const [openCategories, setOpenCategories] = useState<string[]>(['Reconnaissance', 'Web Vulnerability', 'Exploitation'])
@@ -55,14 +57,14 @@ export function Sidebar({
   }
 
   return (
-    <aside className="flex flex-col w-64 min-w-[240px] h-full bg-sidebar border-r border-sidebar-border shadow-xl">
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border bg-muted/20">
-        <div className="flex items-center justify-center size-9 rounded bg-primary/10 border border-primary/20 shadow-inner">
-          <Shield className="size-5 text-primary" />
+    <aside className="flex flex-col w-64 min-w-[240px] h-full bg-[#080809]/80 backdrop-blur-xl border-r border-white/5 shadow-2xl relative z-20">
+      <div className="flex items-center gap-3 px-5 py-6 border-b border-white/5 bg-white/[0.02]">
+        <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10 border border-primary/20 shadow-[0_0_15px_rgba(var(--primary),0.1)]">
+          <Shield className="size-5 text-primary animate-pulse" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold font-mono text-foreground leading-none tracking-tight">C2 COMMAND</p>
-          <p className="text-[10px] font-mono text-muted-foreground mt-1 tracking-tighter uppercase opacity-70">Tactical Backend v1.0</p>
+          <p className="text-xs font-black font-mono text-white leading-none tracking-[0.2em] uppercase">Duelist C2</p>
+          <p className="text-[9px] font-mono text-zinc-500 mt-1.5 tracking-widest uppercase opacity-60">Engine v1.0.0-PRO</p>
         </div>
       </div>
 
@@ -125,28 +127,48 @@ export function Sidebar({
       </nav>
 
       <div className="p-3 space-y-2 border-t border-sidebar-border bg-muted/10">
-        <Button
-          variant="outline"
-          onClick={onOpenAI}
-          className="w-full justify-start gap-3 h-10 font-mono text-xs border-border/50 bg-background/50 hover:bg-accent/10 transition-all shadow-sm relative overflow-hidden"
-        >
-          <Bot className="size-4 text-accent" />
-          AI Intelligence
-          {selectedEvidenceCount > 0 && (
-            <span className="ml-auto bg-accent/20 text-accent border border-accent/30 px-1.5 py-0.5 rounded text-[9px]">
-              {selectedEvidenceCount} Files
-            </span>
-          )}
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            variant="outline"
+            onClick={onOpenAI}
+            className="flex-1 justify-start gap-3 h-10 font-mono text-xs border-border/50 bg-background/50 hover:bg-accent/10 transition-all shadow-sm relative overflow-hidden"
+          >
+            <Bot className="size-4 text-accent" />
+            AI Chat
+            {selectedEvidenceCount > 0 && (
+              <span className="ml-auto bg-accent/20 text-accent border border-accent/30 px-1.5 py-0.5 rounded text-[9px]">
+                {selectedEvidenceCount} Files
+              </span>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => document.dispatchEvent(new CustomEvent('open-ai-settings'))}
+            className="w-10 h-10 px-0 flex-shrink-0 justify-center items-center font-mono text-xs border-border/50 bg-background/50 hover:bg-accent/10 transition-all shadow-sm"
+            title="Manage Tokens & LLMs"
+          >
+            <Settings className="size-4 text-accent" />
+          </Button>
+        </div>
         
-        <Button
-          variant="outline"
-          onClick={onOpenShell}
-          className="w-full justify-start gap-3 h-10 font-mono text-xs border-border/50 bg-background/50 hover:bg-primary/10 transition-all shadow-sm"
-        >
-          <Terminal className="size-4 text-primary" />
-          Live Terminal
-        </Button>
+        <div className="grid grid-cols-2 gap-1">
+          <Button
+            variant="outline"
+            onClick={onOpenShell}
+            className="justify-start gap-3 h-10 font-mono text-xs border-white/5 bg-white/[0.01] hover:bg-primary/10 transition-all shadow-sm"
+          >
+            <Terminal className="size-4 text-primary" />
+            Terminal
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onOpenHistory}
+            className="justify-start gap-3 h-10 font-mono text-xs border-white/5 bg-white/[0.01] hover:bg-zinc-100/5 transition-all shadow-sm"
+          >
+            <Layout className="size-4 text-zinc-400" />
+            History
+          </Button>
+        </div>
       </div>
 
       <div className="px-4 py-4 border-t border-sidebar-border bg-sidebar-accent/20">

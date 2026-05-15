@@ -50,7 +50,7 @@ func InitDB(dbPath string) (*sql.DB, error) {
 		);`,
 		`CREATE TABLE IF NOT EXISTS ai_configs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			provider TEXT NOT NULL,
+			provider TEXT NOT NULL UNIQUE,
 			model_name TEXT,
 			api_key TEXT
 		);`,

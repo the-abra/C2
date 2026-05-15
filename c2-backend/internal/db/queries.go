@@ -102,7 +102,64 @@ func (s *Store) GetNote(target string) (string, error) {
 
 // AI Keys
 func (s *Store) SaveAIKey(provider, model, key string) error {
-	_, err := s.DB.Exec("INSERT INTO ai_configs (provider, model_name, api_key) VALUES (?, ?, ?)",
+	// Use REPLACE INTO or ON CONFLICT to avoid duplicates for the same provider
+	_, err := s.DB.Exec("INSERT INTO ai_configs (provider, model_name, api_key) VALUES (?, ?, ?) ON CONFLICT(provider) DO UPDATE SET model_name=excluded.model_name, api_key=excluded.api_key",
 		provider, model, key)
 	return err
+}
+
+func (s *Store) GetAIConfigs() (map[string]map[string]string, error) {
+	rows, err := s.DB.Query("SELECT provider, model_name, api_key FROM ai_configs")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	res := make(map[string]map[string]string)
+	for rows.Next() {
+		var p, m, k string
+		if err := rows.Scan(&p, &m, &k); err != nil {
+			return nil, err
+		}
+		res[p] = map[string]string{"model": m, "key": k}
+	}
+	return res, nil
+}
+
+type ScanEntry struct {
+	ID          int64  `json:"id"`
+	ToolID      int    `json:"tool_id"`
+	ToolName    string `json:"tool_name"`
+	Target      string `json:"target"`
+	StartTime   string `json:"start_time"`
+	EndTime     string `json:"end_time"`
+	Status      string `json:"status"`
+	LogFilePath string `json:"log_file_path"`
+}
+
+func (s *Store) GetScanHistory() ([]ScanEntry, error) {
+	rows, err := s.DB.Query(`
+		SELECT sh.id, sh.tool_id, t.name, sh.target, sh.start_time, sh.end_time, sh.status, sh.log_file_path 
+		FROM scan_history sh
+		JOIN tools t ON sh.tool_id = t.id
+		ORDER BY sh.start_time DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var history []ScanEntry
+	for rows.Next() {
+		var e ScanEntry
+		var endTime sql.NullString
+		if err := rows.Scan(&e.ID, &e.ToolID, &e.ToolName, &e.Target, &e.StartTime, &endTime, &e.Status, &e.LogFilePath); err != nil {
+			return nil, err
+		}
+		if endTime.Valid {
+			e.EndTime = endTime.String
+		}
+		history = append(history, e)
+	}
+	return history, nil
 }

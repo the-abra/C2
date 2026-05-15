@@ -16,10 +16,13 @@ func NewRouter(h *Handler) http.Handler {
 	api.HandleFunc("/notes", h.GetNote).Methods("GET")
 	api.HandleFunc("/notes", h.SaveNote).Methods("POST")
 	api.HandleFunc("/ai-config", h.SaveAIKey).Methods("POST")
+	api.HandleFunc("/ai-config", h.GetAIConfigs).Methods("GET")
 	api.HandleFunc("/ai/detect-provider", h.DetectProvider).Methods("POST")
 	api.HandleFunc("/ai/chat", h.Chat).Methods("POST")
+	api.HandleFunc("/history", h.GetScanHistory).Methods("GET")
 	api.HandleFunc("/evidence", h.ListEvidence).Methods("GET")
 	api.HandleFunc("/files", h.GetFilesTree).Methods("GET")
+	api.HandleFunc("/files/tree", h.GetFilesTree).Methods("GET")
 	api.HandleFunc("/files/content", h.GetFileContent).Methods("GET")
 	api.HandleFunc("/files/create", h.CreateFile).Methods("POST")
 	api.HandleFunc("/files/edit", h.EditFile).Methods("PUT")
@@ -36,9 +39,9 @@ func NewRouter(h *Handler) http.Handler {
 
 	// CORS
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost", "http://127.0.0.1"},
-		AllowedMethods: []string{"GET", "POST", "OPTIONS"},
-		AllowedHeaders: []string{"Content-Type"},
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Content-Type", "Authorization"},
 	})
 
 	return c.Handler(r)

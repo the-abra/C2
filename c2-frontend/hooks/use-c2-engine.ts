@@ -9,9 +9,15 @@ export function useC2Engine(backendUrl: string, enabled: boolean) {
 
   const connect = useCallback(() => {
     if (wsRef.current || !enabled) return;
+    
     const wsUrl = `${backendUrl.replace("http", "ws").replace("https", "wss")}/ws`;
+    console.log(`[*] Connecting to ${wsUrl}...`);
     const ws = new WebSocket(wsUrl);
     
+    ws.onopen = () => {
+      console.log("[+] Connected to C2 Hub");
+    };
+
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -29,6 +35,20 @@ export function useC2Engine(backendUrl: string, enabled: boolean) {
       } catch (err) {
         console.error("WS Parse error", err);
       }
+    };
+
+    ws.onclose = () => {
+      console.log("[-] Disconnected from C2 Hub");
+      wsRef.current = null;
+      // Auto-reconnect after 3 seconds
+      if (enabled) {
+        setTimeout(connect, 3000);
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.error("WS Error", err);
+      ws.close();
     };
     
     wsRef.current = ws;

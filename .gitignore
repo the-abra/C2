@@ -38,6 +38,7 @@ c2-backend/cmd/server/main
 *.test
 *.out
 c2-backend/vendor/
+c2-backend/wordlists/
 
 # --- Database & Evidence (STRICT) ---
 *.sqlite

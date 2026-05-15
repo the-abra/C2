@@ -69,6 +69,14 @@ func SeedTools(db *sql.DB) error {
 			},
 		},
 		{
+			Name: "Naabu", Category: "Recon", Desc: "Fast Port Scanner by ProjectDiscovery", Binary: "naabu",
+			Profiles: []profileSeed{
+				{Name: "Full Port Scan", Args: []string{"-p", "-", "-host", "<target>"}},
+				{Name: "Top 1000 Ports", Args: []string{"-top-ports", "1000", "-host", "<target>"}},
+				{Name: "Service Discovery", Args: []string{"-p", "80,443,8080,8443", "-sV", "-host", "<target>"}},
+			},
+		},
+		{
 			Name: "Masscan", Category: "Recon", Desc: "Internet-scale Port Scanner", Binary: "masscan",
 			Profiles: []profileSeed{
 				{Name: "Top 100 Ports", Args: []string{"--top-ports", "100", "<target>", "--rate", "1000"}},
@@ -81,21 +89,31 @@ func SeedTools(db *sql.DB) error {
 		{
 			Name: "ffuf", Category: "Fuzzing", Desc: "Fast web fuzzer", Binary: "ffuf",
 			Profiles: []profileSeed{
-				{Name: "Directory Fuzz", Args: []string{"-w", "/usr/share/wordlists/dirb/common.txt", "-u", "<target>/FUZZ"}},
-				{Name: "Extension Fuzz", Args: []string{"-w", "/usr/share/wordlists/dirb/common.txt", "-u", "<target>/FUZZ", "-e", ".php,.html,.bak"}},
-				{Name: "Filter 404/403", Args: []string{"-w", "medium.txt", "-u", "<target>/FUZZ", "-fc", "404,403"}},
-				{Name: "VHost Discovery", Args: []string{"-w", "subdomains.txt", "-u", "<target>", "-H", "Host: FUZZ.<target>"}},
-				{Name: "Recursive Discovery", Args: []string{"-w", "common.txt", "-u", "<target>/FUZZ", "-recursion"}},
-				{Name: "JSON Data Fuzz", Args: []string{"-w", "words.txt", "-u", "<target>", "-X", "POST", "-d", "{\"id\": \"FUZZ\"}"}},
+				{Name: "Directory Fuzz", Args: []string{"-w", "/usr/share/wordlists/dirb/common.txt", "-u", "<target>/FUZZ", "-fc", "404", "-r"}},
+				{Name: "Extension Fuzz", Args: []string{"-w", "/usr/share/wordlists/dirb/common.txt", "-u", "<target>/FUZZ", "-e", ".php,.html,.bak", "-fc", "404", "-r"}},
+				{Name: "Filter 404", Args: []string{"-w", "/usr/share/wordlists/dirb/common.txt", "-u", "<target>/FUZZ", "-fc", "404", "-r"}},
+				{Name: "VHost Discovery", Args: []string{"-w", "/usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt", "-u", "<target>", "-H", "Host: FUZZ.<target>", "-fc", "404", "-r"}},
+				{Name: "Recursive Discovery", Args: []string{"-w", "/usr/share/wordlists/dirb/common.txt", "-u", "<target>/FUZZ", "-recursion", "-fc", "404", "-r"}},
+				{Name: "Rockyou Pass Fuzz", Args: []string{"-w", "/usr/share/wordlists/seclists/Passwords/Leaked-Databases/rockyou.txt", "-u", "<target>/FUZZ", "-fc", "404"}},
+			},
+		},
+		{
+			Name: "Arjun", Category: "Fuzzing", Desc: "HTTP Parameter Discovery", Binary: "arjun",
+			Profiles: []profileSeed{
+				{Name: "Discover GET Params", Args: []string{"-u", "<target>", "-m", "GET"}},
+				{Name: "Discover POST Params", Args: []string{"-u", "<target>", "-m", "POST"}},
+				{Name: "JSON Body Discovery", Args: []string{"-u", "<target>", "-m", "JSON"}},
+				{Name: "XML Body Discovery", Args: []string{"-u", "<target>", "-m", "XML"}},
 			},
 		},
 		{
 			Name: "Gobuster", Category: "Fuzzing", Desc: "Multi-purpose Bruteforcer", Binary: "gobuster",
 			Profiles: []profileSeed{
-				{Name: "Dir Enumeration", Args: []string{"dir", "-u", "<target>", "-w", "common.txt"}},
-				{Name: "DNS Enumeration", Args: []string{"dns", "-d", "<target>", "-w", "subdomains.txt"}},
-				{Name: "VHost Discovery", Args: []string{"vhost", "-u", "<target>", "-w", "common.txt"}},
-				{Name: "S3 Bucket Scan", Args: []string{"s3", "-w", "buckets.txt"}},
+				{Name: "Dir Enumeration", Args: []string{"dir", "-u", "<target>", "-w", "/usr/share/wordlists/dirb/common.txt", "--force", "-b", "404", "-L"}},
+				{Name: "Deep Scan", Args: []string{"dir", "-u", "<target>", "-w", "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt", "-x", "php,html,txt,bak", "-t", "50", "-b", "404", "-L"}},
+				{Name: "DNS Enumeration", Args: []string{"dns", "-d", "<target>", "-w", "/usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt"}},
+				{Name: "VHost Discovery", Args: []string{"vhost", "-u", "<target>", "-w", "/usr/share/wordlists/dirb/common.txt"}},
+				{Name: "S3 Bucket Scan", Args: []string{"s3", "-w", "/usr/share/wordlists/dirb/common.txt"}},
 			},
 		},
 		{
@@ -111,29 +129,37 @@ func SeedTools(db *sql.DB) error {
 		{
 			Name: "Nuclei", Category: "Vuln Scanners", Desc: "Template-based vulnerability scanner", Binary: "nuclei",
 			Profiles: []profileSeed{
-				{Name: "Critical & High CVEs", Args: []string{"-u", "<target>", "-s", "critical,high"}},
-				{Name: "Misconfigurations Only", Args: []string{"-u", "<target>", "-t", "misconfiguration/"}},
+				{Name: "Critical & High CVEs", Args: []string{"-u", "<target>", "-severity", "critical,high"}},
+				{Name: "Misconfigurations Only", Args: []string{"-u", "<target>", "-tags", "misconfiguration"}},
 				{Name: "Full Arsenal", Args: []string{"-u", "<target>", "-as"}},
-				{Name: "Exposed Panels", Args: []string{"-u", "<target>", "-t", "exposed-panels/"}},
+				{Name: "Exposed Panels", Args: []string{"-u", "<target>", "-tags", "exposed-panel"}},
 				{Name: "Headless Browser", Args: []string{"-u", "<target>", "-headless"}},
-				{Name: "Fuzzing Templates", Args: []string{"-u", "<target>", "-t", "fuzzing/"}},
-				{Name: "Technological Profile", Args: []string{"-u", "<target>", "-t", "technologies/"}},
+				{Name: "Fuzzing Templates", Args: []string{"-u", "<target>", "-tags", "fuzzing"}},
+				{Name: "Technological Profile", Args: []string{"-u", "<target>", "-tags", "tech"}},
+			},
+		},
+		{
+			Name: "Searchsploit", Category: "Vuln Scanners", Desc: "Exploit Database Search", Binary: "searchsploit",
+			Profiles: []profileSeed{
+				{Name: "Search Service", Args: []string{"<target>"}},
+				{Name: "Full Path Search", Args: []string{"-p", "<target>"}},
+				{Name: "Exhaustive Search", Args: []string{"-e", "<target>"}},
+				{Name: "Nmap XML Import", Args: []string{"--nmap", "<target>"}},
 			},
 		},
 		{
 			Name: "Nikto", Category: "Vuln Scanners", Desc: "Web Server Scanner", Binary: "nikto",
 			Profiles: []profileSeed{
-				{Name: "Standard Scan", Args: []string{"-h", "<target>"}},
+				{Name: "Standard Scan", Args: []string{"-h", "<target>", "-Tuning", "123bde"}},
 				{Name: "SSL Scan", Args: []string{"-h", "<target>", "-ssl"}},
-				{Name: "Tuning (XSS/SQLi)", Args: []string{"-h", "<target>", "-Tuning", "49"}},
+				{Name: "Comprehensive", Args: []string{"-h", "<target>", "-C", "all"}},
 			},
 		},
 		{
 			Name: "WPScan", Category: "Vuln Scanners", Desc: "WordPress Security Scanner", Binary: "wpscan",
 			Profiles: []profileSeed{
-				{Name: "Fast Enumeration", Args: []string{"--url", "<target>", "--enumerate", "vp,vt,u"}},
-				{Name: "Aggressive Plugin Scan", Args: []string{"--url", "<target>", "--enumerate", "ap", "--plugins-detection", "aggressive"}},
-				{Name: "Vulnerability Check", Args: []string{"--url", "<target>", "--enumerate", "vp"}},
+				{Name: "Aggressive Enumeration", Args: []string{"--url", "<target>", "--enumerate", "vp,vt,u", "--no-banner", "--random-user-agent"}},
+				{Name: "Plugin Vulnerabilities", Args: []string{"--url", "<target>", "--enumerate", "ap", "--plugins-detection", "aggressive", "--no-banner"}},
 			},
 		},
 
@@ -141,13 +167,18 @@ func SeedTools(db *sql.DB) error {
 		{
 			Name: "SQLMap", Category: "Exploitation", Desc: "Automatic SQL Injection", Binary: "sqlmap",
 			Profiles: []profileSeed{
-				{Name: "Auto Batch", Args: []string{"-u", "<target>", "--batch", "--random-agent"}},
-				{Name: "WAF Bypass", Args: []string{"-u", "<target>", "--tamper", "space2comment", "--level", "5", "--risk", "3"}},
-				{Name: "Current User & DB", Args: []string{"-u", "<target>", "--current-user", "--current-db"}},
-				{Name: "Dump All Tables", Args: []string{"-u", "<target>", "--dump-all"}},
-				{Name: "OS Shell Attempt", Args: []string{"-u", "<target>", "--os-shell"}},
-				{Name: "Forms Injection", Args: []string{"-u", "<target>", "--forms"}},
-				{Name: "Crawler Mode", Args: []string{"-u", "<target>", "--crawl", "3"}},
+				{Name: "Auto Batch", Args: []string{"-u", "<target>", "--batch", "--random-agent", "--level", "1", "--risk", "1"}},
+				{Name: "Deep Analysis", Args: []string{"-u", "<target>", "--batch", "--random-agent", "--level", "5", "--risk", "3", "--tamper", "space2comment"}},
+				{Name: "Dump All Tables", Args: []string{"-u", "<target>", "--batch", "--dump-all"}},
+				{Name: "OS Shell Attempt", Args: []string{"-u", "<target>", "--batch", "--os-shell"}},
+			},
+		},
+		{
+			Name: "Commix", Category: "Exploitation", Desc: "Command Injection Exploitation", Binary: "commix",
+			Profiles: []profileSeed{
+				{Name: "Automated Scan", Args: []string{"--url", "<target>", "--batch"}},
+				{Name: "Aggressive Scan", Args: []string{"--url", "<target>", "--level", "3", "--batch"}},
+				{Name: "Shell Attempt", Args: []string{"--url", "<target>", "--os-shell", "--batch"}},
 			},
 		},
 		{
@@ -172,24 +203,23 @@ func SeedTools(db *sql.DB) error {
 		{
 			Name: "Hydra", Category: "Bruteforce", Desc: "Network Logon Cracker", Binary: "hydra",
 			Profiles: []profileSeed{
-				{Name: "SSH Bruteforce", Args: []string{"-L", "users.txt", "-P", "pass.txt", "<target>", "ssh"}},
-				{Name: "FTP Bruteforce", Args: []string{"-L", "users.txt", "-P", "pass.txt", "<target>", "ftp"}},
-				{Name: "RDP Bruteforce", Args: []string{"-L", "users.txt", "-P", "pass.txt", "<target>", "rdp"}},
-				{Name: "HTTP GET Login", Args: []string{"-L", "users.txt", "-P", "pass.txt", "<target>", "http-get", "/login"}},
+				{Name: "SSH Bruteforce", Args: []string{"-L", "/usr/share/wordlists/dirb/common.txt", "-P", "/usr/share/wordlists/seclists/Passwords/Leaked-Databases/rockyou.txt", "ssh://<target>"}},
+				{Name: "FTP Bruteforce", Args: []string{"-L", "/usr/share/wordlists/dirb/common.txt", "-P", "/usr/share/wordlists/seclists/Passwords/Leaked-Databases/rockyou.txt", "ftp://<target>"}},
+				{Name: "RDP Bruteforce", Args: []string{"-L", "/usr/share/wordlists/dirb/common.txt", "-P", "/usr/share/wordlists/seclists/Passwords/Leaked-Databases/rockyou.txt", "rdp://<target>"}},
 			},
 		},
 		{
 			Name: "Medusa", Category: "Bruteforce", Desc: "Parallel login brute-forcer", Binary: "medusa",
 			Profiles: []profileSeed{
-				{Name: "FTP Bruteforce", Args: []string{"-h", "<target>", "-U", "users.txt", "-P", "pass.txt", "-M", "ftp"}},
-				{Name: "SSH Login", Args: []string{"-h", "<target>", "-u", "root", "-P", "pass.txt", "-M", "ssh"}},
+				{Name: "FTP Bruteforce", Args: []string{"-h", "<target>", "-U", "/usr/share/wordlists/dirb/common.txt", "-P", "/usr/share/wordlists/seclists/Passwords/Leaked-Databases/rockyou.txt", "-M", "ftp"}},
+				{Name: "SSH Login", Args: []string{"-h", "<target>", "-u", "root", "-P", "/usr/share/wordlists/seclists/Passwords/Leaked-Databases/rockyou.txt", "-M", "ssh"}},
 			},
 		},
 		{
 			Name: "Hashcat", Category: "Bruteforce", Desc: "Password Recovery Tool", Binary: "hashcat",
 			Profiles: []profileSeed{
-				{Name: "MD5 Dictionary", Args: []string{"-m", "0", "<target>", "wordlist.txt"}},
-				{Name: "SHA256 Dictionary", Args: []string{"-m", "1400", "<target>", "wordlist.txt"}},
+				{Name: "MD5 Dictionary", Args: []string{"-m", "0", "<target>", "/usr/share/wordlists/seclists/Passwords/Leaked-Databases/rockyou.txt"}},
+				{Name: "SHA256 Dictionary", Args: []string{"-m", "1400", "<target>", "/usr/share/wordlists/seclists/Passwords/Leaked-Databases/rockyou.txt"}},
 				{Name: "NTLM Bruteforce", Args: []string{"-m", "1000", "<target>", "-a", "3"}},
 			},
 		},
@@ -240,7 +270,7 @@ func SeedTools(db *sql.DB) error {
 
 	for _, t := range tools {
 		var toolID int64
-		err := db.QueryRow("SELECT id FROM tools WHERE name = ?", t.Name).Scan(&toolID)
+		err := db.QueryRow("SELECT id FROM tools WHERE LOWER(name) = LOWER(?)", t.Name).Scan(&toolID)
 		if err == sql.ErrNoRows {
 			res, err := db.Exec("INSERT INTO tools (name, category, description, default_binary_name) VALUES (?, ?, ?, ?)",
 				t.Name, t.Category, t.Desc, t.Binary)
@@ -248,6 +278,13 @@ func SeedTools(db *sql.DB) error {
 				return err
 			}
 			toolID, _ = res.LastInsertId()
+		} else {
+			// Update the tool information to ensure it's current
+			_, err = db.Exec("UPDATE tools SET category = ?, description = ?, default_binary_name = ? WHERE id = ?",
+				t.Category, t.Desc, t.Binary, toolID)
+			if err != nil {
+				return err
+			}
 		}
 
 		for _, p := range t.Profiles {
@@ -257,6 +294,13 @@ func SeedTools(db *sql.DB) error {
 			if profExists == 0 {
 				_, err := db.Exec("INSERT INTO attack_profiles (tool_id, name, args) VALUES (?, ?, ?)",
 					toolID, p.Name, string(argsJSON))
+				if err != nil {
+					return err
+				}
+			} else {
+				// Update existing profile to ensure args are correct (e.g. wordlist paths)
+				_, err := db.Exec("UPDATE attack_profiles SET args = ? WHERE tool_id = ? AND name = ?",
+					string(argsJSON), toolID, p.Name)
 				if err != nil {
 					return err
 				}

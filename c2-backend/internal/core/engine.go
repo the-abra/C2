@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
+	"github.com/creack/pty"
 )
 
 type Engine struct{}
@@ -25,13 +27,12 @@ func (e *Engine) Execute(ctx context.Context, binary string, args []string, targ
 
 	switch strings.ToLower(binary) {
 	case "httpx":
-		// Check for httpx-toolkit or projectdiscovery httpx
 		if p, err := exec.LookPath("httpx-toolkit"); err == nil {
 			cmdName = p
 		} else if p, err := exec.LookPath("httpx"); err == nil {
 			cmdName = p
 		} else {
-			return fmt.Errorf("httpx not found")
+			cmdName = filepath.Join(homeDir, "go", "bin", "httpx")
 		}
 	case "dalfox":
 		if p, err := exec.LookPath("dalfox"); err == nil {
@@ -40,16 +41,30 @@ func (e *Engine) Execute(ctx context.Context, binary string, args []string, targ
 			cmdName = filepath.Join(homeDir, "go", "bin", "dalfox")
 		}
 	case "tplmap":
-		// Custom execution: python3 /opt/tplmap/tplmap.py
-		cmdName = "python3"
-		finalArgs = append(finalArgs, "/opt/tplmap/tplmap.py")
+		if _, err := os.Stat("/opt/tplmap/tplmap.py"); err == nil {
+			cmdName = "python3"
+			finalArgs = append(finalArgs, "/opt/tplmap/tplmap.py")
+		} else {
+			// Try to find in path
+			if p, err := exec.LookPath("tplmap"); err == nil {
+				cmdName = p
+			} else {
+				return fmt.Errorf("tplmap not found at /opt/tplmap/tplmap.py or in PATH")
+			}
+		}
 	default:
-		// Normal resolution via PATH
 		resolvedPath, err := exec.LookPath(binary)
 		if err != nil {
-			return fmt.Errorf("tool binary not found in PATH: %s", binary)
+			// Check /usr/bin/vendor_perl for Arch Linux users
+			p := filepath.Join("/usr/bin/vendor_perl", binary)
+			if _, err := os.Stat(p); err == nil {
+				cmdName = p
+			} else {
+				return fmt.Errorf("tool binary not found in PATH: %s", binary)
+			}
+		} else {
+			cmdName = resolvedPath
 		}
-		cmdName = resolvedPath
 	}
 
 	// 2. Placeholder Replacement
@@ -58,11 +73,27 @@ func (e *Engine) Execute(ctx context.Context, binary string, args []string, targ
 		finalArgs = append(finalArgs, processedArg)
 	}
 
-	// 3. Execution setup
-	cmd := exec.CommandContext(ctx, cmdName, finalArgs...)
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	cmd.Stdin = nil // Non-interactive tools
+	// 3. Execution setup with PTY
+	// Add a timeout context to prevent orphan processes
+	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
+	defer cancel()
 
-	return cmd.Run()
+	cmd := exec.CommandContext(timeoutCtx, cmdName, finalArgs...)
+	
+	f, err := pty.Start(cmd)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	// Synchronize output reading
+	done := make(chan struct{})
+	go func() {
+		io.Copy(stdout, f)
+		close(done)
+	}()
+
+	err = cmd.Wait()
+	<-done // Wait for all output to be copied
+	return err
 }

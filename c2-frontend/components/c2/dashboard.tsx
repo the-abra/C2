@@ -9,15 +9,18 @@ import { HeaderBar } from './header-bar'
 import { TerminalView, type LogLine } from './terminal-view'
 import { NotesModal } from './notes-modal'
 import { AIPanel } from './ai-panel'
+import { AIConfigModal } from './ai-config-modal'
 import { EvidenceModal } from './evidence-modal'
 import { UploadManager } from './upload-manager'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { useC2Engine } from '@/hooks/use-c2-engine'
 import dynamic from 'next/dynamic'
+import { HistoryModal } from './history-modal'
 
-const ShellPanel = dynamic(() => import('@/components/c2/shell-panel'), {
+const ShellPanel = dynamic(() => import('@/components/c2/shell-panel').then(m => m.ShellPanel), {
   ssr: false,
 })
+
 import {
   connectToBackend,
   runTool,
@@ -65,9 +68,11 @@ export function Dashboard() {
 
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false)
+  const [isAIConfigOpen, setIsAIConfigOpen] = useState(false)
   const [isShellOpen, setIsShellOpen] = useState(false)
   const [isEvidenceOpen, setIsEvidenceOpen] = useState(false)
   const [isUploadsOpen, setIsUploadsOpen] = useState(false)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   
   const [selectedEvidenceFiles, setSelectedEvidenceFiles] = useState<{ target: string; filename: string }[]>([])
 
@@ -96,6 +101,12 @@ export function Dashboard() {
       fetchUploads()
     }
   }, [connected, backendUrl, fetchUploads])
+
+  useEffect(() => {
+    const handleOpenAiSettings = () => setIsAIConfigOpen(true)
+    document.addEventListener('open-ai-settings', handleOpenAiSettings)
+    return () => document.removeEventListener('open-ai-settings', handleOpenAiSettings)
+  }, [])
 
   const handleConnect = async (url: string) => {
     try {
@@ -147,7 +158,14 @@ export function Dashboard() {
     <>
       {!connected && <ConnectionOverlay onConnect={handleConnect} />}
 
-      <div className="flex h-screen w-screen overflow-hidden bg-background">
+      <div className="flex h-screen w-screen overflow-hidden bg-[#020203] text-zinc-300 relative">
+        {/* Premium Background Effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/5 rounded-full blur-[120px]" />
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
+        </div>
+
         <Sidebar
           categories={categories}
           selectedToolId={selectedToolId}
@@ -160,10 +178,11 @@ export function Dashboard() {
           backendUrl={backendUrl}
           onOpenAI={() => setIsAIPanelOpen(true)}
           onOpenShell={() => setIsShellOpen(true)}
+          onOpenHistory={() => setIsHistoryOpen(true)}
           selectedEvidenceCount={selectedEvidenceFiles.length}
         />
 
-        <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
+        <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden relative z-10 backdrop-blur-[2px]">
           <HeaderBar
             selectedToolName={selectedTool?.name || 'No Tool'}
             processStatus={processStatus}
@@ -207,16 +226,26 @@ export function Dashboard() {
         </DialogContent>
       </Dialog>
 
+      <HistoryModal 
+        isOpen={isHistoryOpen} 
+        onClose={() => setIsHistoryOpen(false)} 
+        backendUrl={backendUrl} 
+      />
+
       <NotesModal isOpen={isNotesOpen} onClose={() => setIsNotesOpen(false)} target={target || 'global'} />
       
-      <AIPanel 
-        isOpen={isAIPanelOpen} 
-        onClose={() => setIsAIPanelOpen(false)} 
+      <AIConfigModal
+        isOpen={isAIConfigOpen}
+        onClose={() => setIsAIConfigOpen(false)}
+        onShowToast={(t, d) => toast({ title: t, description: d })}
+        backendUrl={backendUrl}
+      />
+      <AIPanel
+        isOpen={isAIPanelOpen}        onClose={() => setIsAIPanelOpen(false)} 
         onShowToast={(t, d) => toast({ title: t, description: d })} 
         backendUrl={backendUrl} 
         selectedEvidenceFiles={selectedEvidenceFiles}
         onToggleEvidenceFile={toggleEvidenceFile}
-        onOpenEvidence={() => { setIsAIPanelOpen(false); setIsEvidenceOpen(true); }}
       />
       <ShellPanel isOpen={isShellOpen} onClose={() => setIsShellOpen(false)} backendUrl={backendUrl} />
       <Toaster />
