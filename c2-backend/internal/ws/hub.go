@@ -1,11 +1,9 @@
 package ws
 
 import (
-	"bytes"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
-	"strings"
 	"sync"
 )
 
@@ -88,33 +86,17 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type WSWriter struct {
 	Hub      *Hub
 	ToolName string
-	buf      bytes.Buffer
-	mu       sync.Mutex
 }
 
 func (w *WSWriter) Write(p []byte) (n int, err error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	w.buf.Write(p)
-	for {
-		line, err := w.buf.ReadString('\n')
-		if err != nil {
-			w.buf.WriteString(line)
-			break
-		}
-		w.Hub.BroadcastLog(w.ToolName, strings.TrimRight(line, "\r\n"))
+	if len(p) == 0 {
+		return 0, nil
 	}
+	// Send raw data chunk immediately to allow xterm.js to handle ANSI codes/progress bars
+	w.Hub.BroadcastLog(w.ToolName, string(p))
 	return len(p), nil
 }
 
 func (w *WSWriter) Close() error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	if w.buf.Len() > 0 {
-		w.Hub.BroadcastLog(w.ToolName, strings.TrimRight(w.buf.String(), "\r\n"))
-		w.buf.Reset()
-	}
 	return nil
 }

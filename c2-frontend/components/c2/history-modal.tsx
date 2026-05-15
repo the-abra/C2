@@ -65,7 +65,7 @@ export function HistoryModal({ isOpen, onClose, backendUrl }: HistoryModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[70vh] flex flex-col bg-[#080809] border-white/5 p-0 overflow-hidden shadow-2xl">
+      <DialogContent className="w-[35vw] max-w-none h-[80vh] flex flex-col bg-[#080809] border-white/5 p-0 overflow-hidden shadow-2xl z-[300]">
         <DialogHeader className="px-6 py-4 border-b border-white/5 bg-white/[0.02]">
           <div className="flex items-center justify-between pr-8">
             <div className="flex items-center gap-3">
@@ -77,8 +77,8 @@ export function HistoryModal({ isOpen, onClose, backendUrl }: HistoryModalProps)
                 <p className="text-[10px] font-mono text-zinc-500 tracking-tight uppercase opacity-60">Log tracking & status archive</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="relative w-64">
+            <div className="flex items-center gap-2 flex-1 max-w-[200px]">
+              <div className="relative w-full">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-zinc-500" />
                 <Input 
                   placeholder="Filter by tool or target..." 
@@ -99,12 +99,10 @@ export function HistoryModal({ isOpen, onClose, backendUrl }: HistoryModalProps)
             <table className="w-full text-left border-separate border-spacing-y-1.5">
               <thead>
                 <tr className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-                  <th className="px-4 py-2 font-medium">Status</th>
+                  <th className="px-4 py-2 font-medium w-[80px]">Status</th>
                   <th className="px-4 py-2 font-medium">Tool</th>
                   <th className="px-4 py-2 font-medium">Target</th>
-                  <th className="px-4 py-2 font-medium">Duration</th>
-                  <th className="px-4 py-2 font-medium">Timestamp</th>
-                  <th className="px-4 py-2 font-medium text-right">Actions</th>
+                  <th className="px-4 py-2 font-medium text-right w-[60px]">Link</th>
                 </tr>
               </thead>
               <tbody className="text-[11px] font-mono">
@@ -119,17 +117,12 @@ export function HistoryModal({ isOpen, onClose, backendUrl }: HistoryModalProps)
                     <td className="px-4 py-3 bg-white/[0.01]">
                       <span className="text-primary font-bold">{h.tool_name}</span>
                     </td>
-                    <td className="px-4 py-3 bg-white/[0.01] max-w-[150px] truncate">
+                    <td className="px-4 py-3 bg-white/[0.01] max-w-[120px] truncate">
                       <span className="text-zinc-300">{h.target}</span>
-                    </td>
-                    <td className="px-4 py-3 bg-white/[0.01] text-zinc-500">
-                       {h.end_time ? "Completed" : "Running"}
-                    </td>
-                    <td className="px-4 py-3 bg-white/[0.01] text-zinc-500">
-                      {new Date(h.start_time).toLocaleString('en-US', { hour12: false })}
+                      <p className="text-[9px] text-zinc-600 mt-0.5">{new Date(h.start_time).toLocaleTimeString()}</p>
                     </td>
                     <td className="px-4 py-3 rounded-r-lg bg-white/[0.01] text-right">
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 hover:bg-primary/20 hover:text-primary">
+                      <Button variant="ghost" size="sm" className="size-8 p-0 hover:bg-primary/20 hover:text-primary">
                         <ExternalLink className="size-3.5" />
                       </Button>
                     </td>

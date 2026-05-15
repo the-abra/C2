@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { ConnectionOverlay } from './connection-overlay'
 import { Sidebar } from './sidebar'
 import { HeaderBar } from './header-bar'
-import { TerminalView, type LogLine } from './terminal-view'
+import { TerminalView } from './terminal-view'
 import { NotesModal } from './notes-modal'
 import { AIPanel } from './ai-panel'
 import { AIConfigModal } from './ai-config-modal'
@@ -54,16 +54,10 @@ export function Dashboard() {
   const selectedProfile = selectedTool?.profiles?.find(p => p.id === selectedProfileId)
   const processStatus = selectedTool ? (statuses[selectedTool.default_binary_name] || 'idle') : 'idle'
 
-  // Map raw logs to LogLine objects for TerminalView
-  const currentLogs: LogLine[] = useMemo(() => {
-    if (!selectedTool) return []
-    const raw = allLogs[selectedTool.default_binary_name] || []
-    return raw.map((text, i) => ({
-      id: i,
-      text,
-      type: 'data',
-      timestamp: new Date().toLocaleTimeString('en-US', { hour12: false })
-    }))
+  // Map raw logs to raw string for TerminalView
+  const currentLogs: string = useMemo(() => {
+    if (!selectedTool) return ""
+    return allLogs[selectedTool.default_binary_name] || ""
   }, [allLogs, selectedTool])
 
   const [isNotesOpen, setIsNotesOpen] = useState(false)
@@ -122,7 +116,7 @@ export function Dashboard() {
 
     try {
       setStatuses(prev => ({ ...prev, [selectedTool.default_binary_name]: 'running' }))
-      setAllLogs(prev => ({ ...prev, [selectedTool.default_binary_name]: [`[*] Engaging ${selectedTool.name}...`] }))
+      setAllLogs(prev => ({ ...prev, [selectedTool.default_binary_name]: `[*] Engaging ${selectedTool.name}...\n` }))
       
       const data = await runTool({
         toolId: selectedTool.id,
@@ -206,8 +200,7 @@ export function Dashboard() {
             selectedToolName={selectedTool?.name || ''}
             target={target}
             profileName={selectedProfile?.name || ''}
-            profileArgs={selectedProfile?.args}
-            onClear={() => setAllLogs(p => ({ ...p, [selectedTool!.default_binary_name]: [] }))}
+            onClear={() => setAllLogs(p => ({ ...p, [selectedTool!.default_binary_name]: "" }))}
           />
         </div>
       </div>

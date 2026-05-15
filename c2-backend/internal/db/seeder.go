@@ -109,8 +109,8 @@ func SeedTools(db *sql.DB) error {
 		{
 			Name: "Gobuster", Category: "Fuzzing", Desc: "Multi-purpose Bruteforcer", Binary: "gobuster",
 			Profiles: []profileSeed{
-				{Name: "Dir Enumeration", Args: []string{"dir", "-u", "<target>", "-w", "/usr/share/wordlists/dirb/common.txt", "--force", "-b", "404", "-L"}},
-				{Name: "Deep Scan", Args: []string{"dir", "-u", "<target>", "-w", "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt", "-x", "php,html,txt,bak", "-t", "50", "-b", "404", "-L"}},
+				{Name: "Dir Enumeration", Args: []string{"dir", "-u", "<target>", "-w", "/usr/share/wordlists/dirb/common.txt", "--force", "-b", "404", "-r"}},
+				{Name: "Deep Scan", Args: []string{"dir", "-u", "<target>", "-w", "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt", "-x", "php,html,txt,bak", "-t", "50", "-b", "404", "-r"}},
 				{Name: "DNS Enumeration", Args: []string{"dns", "-d", "<target>", "-w", "/usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt"}},
 				{Name: "VHost Discovery", Args: []string{"vhost", "-u", "<target>", "-w", "/usr/share/wordlists/dirb/common.txt"}},
 				{Name: "S3 Bucket Scan", Args: []string{"s3", "-w", "/usr/share/wordlists/dirb/common.txt"}},

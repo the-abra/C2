@@ -18,7 +18,43 @@ func NewEngine() *Engine {
 	return &Engine{}
 }
 
+func normalizeTarget(binary string, target string) string {
+	// List of tools that prefer or require NO http/https prefix (Domain/IP only)
+	needsNoPrefix := []string{"nmap", "amass", "subfinder", "naabu", "masscan", "dnsrecon", "medusa", "hydra"}
+
+	// List of tools that REQUIRE an http/https prefix
+	needsPrefix := []string{"ffuf", "gobuster", "feroxbuster", "nuclei", "nikto", "wpscan", "sqlmap", "commix", "dalfox", "tplmap", "httpx", "arjun"}
+
+	hasPrefix := strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://")
+	binLower := strings.ToLower(binary)
+
+	for _, b := range needsNoPrefix {
+		if b == binLower {
+			if hasPrefix {
+				t := strings.TrimPrefix(target, "http://")
+				t = strings.TrimPrefix(t, "https://")
+				return strings.TrimSuffix(t, "/")
+			}
+			return target
+		}
+	}
+
+	for _, b := range needsPrefix {
+		if b == binLower {
+			if !hasPrefix {
+				return "http://" + target
+			}
+			return target
+		}
+	}
+
+	return target
+}
+
 func (e *Engine) Execute(ctx context.Context, binary string, args []string, target string, stdout, stderr io.Writer) error {
+	// Normalize target based on tool requirements
+	normalizedTarget := normalizeTarget(binary, target)
+
 	// 1. Resolve Path & Custom Rules
 	var cmdName string
 	var finalArgs []string
@@ -69,7 +105,7 @@ func (e *Engine) Execute(ctx context.Context, binary string, args []string, targ
 
 	// 2. Placeholder Replacement
 	for _, arg := range args {
-		processedArg := strings.ReplaceAll(arg, "<target>", target)
+		processedArg := strings.ReplaceAll(arg, "<target>", normalizedTarget)
 		finalArgs = append(finalArgs, processedArg)
 	}
 

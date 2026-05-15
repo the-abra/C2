@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 export type ProcessStatus = 'idle' | 'running' | 'error' | 'completed' | 'killed' | 'failed'
 
 export function useC2Engine(backendUrl: string, enabled: boolean) {
-  const [allLogs, setAllLogs] = useState<Record<string, string[]>>({});
+  const [allLogs, setAllLogs] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, ProcessStatus>>({});
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -24,7 +24,7 @@ export function useC2Engine(backendUrl: string, enabled: boolean) {
         if (data.type === "log" && data.tool) {
           setAllLogs((prev) => ({
             ...prev,
-            [data.tool]: [...(prev[data.tool] || []), data.payload],
+            [data.tool]: (prev[data.tool] || "") + data.payload,
           }));
         } else if (data.type === "status" && data.tool) {
           setStatuses((prev) => ({
