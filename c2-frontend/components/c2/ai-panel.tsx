@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils'
 import { get } from 'idb-keyval'
 import { AIContextModal } from './ai-context-modal'
+import { compileSessionContext } from '@/lib/api-service'
 
 export interface AIMessage {
   id: string
@@ -34,6 +35,7 @@ interface AIPanelProps {
   onClose: () => void
   onShowToast: (title: string, description: string) => void
   backendUrl: string
+  sessionId: number
   selectedEvidenceFiles: { target: string; filename: string }[]
   onToggleEvidenceFile: (target: string, filename: string) => void
 }
@@ -43,6 +45,7 @@ export function AIPanel({
   onClose, 
   onShowToast, 
   backendUrl, 
+  sessionId,
   selectedEvidenceFiles, 
   onToggleEvidenceFile
 }: AIPanelProps) {
@@ -96,6 +99,20 @@ export function AIPanel({
       setTimeout(() => inputRef.current?.focus(), 100)
     }
   }, [isOpen])
+
+  const handleInjectSessionContext = async () => {
+    if (!sessionId) return
+    setIsLoading(true)
+    try {
+      const ctx = await compileSessionContext(backendUrl, sessionId)
+      setInputValue((prev) => prev + (prev ? "\n\n" : "") + ctx)
+      onShowToast("Context Injected", "Real-time session data added to prompt.")
+    } catch (e) {
+      onShowToast("Error", "Failed to compile session context.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return
@@ -151,35 +168,35 @@ export function AIPanel({
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-5xl h-[85vh] mx-4 flex bg-zinc-950 border border-zinc-800 rounded-md shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-5xl h-[85vh] mx-4 flex bg-background border border-border rounded-md shadow-2xl overflow-hidden">
         
-        <div className="flex-1 flex flex-col min-w-0 bg-black">
+        <div className="flex-1 flex flex-col min-w-0 bg-background">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-950 shrink-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background shrink-0">
             <div className="flex items-center gap-3">
-              <div className="size-8 rounded bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                <Bot className="size-4 text-blue-400" />
+              <div className="size-8 rounded bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Bot className="size-4 text-primary" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold font-mono text-zinc-100 flex items-center gap-2">
+                <h2 className="text-sm font-semibold font-mono text-foreground flex items-center gap-2">
                   DUELIST INTELLIGENCE
                 </h2>
-                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">Automated Analysis & Strategic Insight</p>
+                <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-tighter">Automated Analysis & Strategic Insight</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger className="w-56 h-9 text-xs font-mono bg-zinc-900 border-zinc-800 text-zinc-300 focus:ring-1 focus:ring-blue-500/50">
+                <SelectTrigger className="w-56 h-9 text-xs font-mono bg-muted/10 border-border text-muted-foreground focus:ring-1 focus:ring-primary/50">
                   <SelectValue placeholder="No Model Selected" />
                 </SelectTrigger>
-                <SelectContent className="z-[300] font-mono text-xs bg-zinc-950 border-zinc-800 text-zinc-300">
+                <SelectContent className="z-[300] font-mono text-xs bg-background border-border text-muted-foreground">
                   {models.map((model) => (
                     <SelectItem key={model.id} value={model.id} className="cursor-pointer">
                       <div className="flex items-center gap-2 py-0.5">
-                        <Cloud className="size-3 text-zinc-500" />
+                        <Cloud className="size-3 text-muted-foreground/50" />
                         <div className="flex flex-col">
                           <span>{model.name}</span>
                           <span className="text-[9px] opacity-50 uppercase">{model.provider}</span>
@@ -188,12 +205,12 @@ export function AIPanel({
                     </SelectItem>
                   ))}
                   {models.length === 0 && (
-                    <div className="p-4 text-center text-zinc-500 italic">No models configured</div>
+                    <div className="p-4 text-center text-muted-foreground italic">No models configured</div>
                   )}
                 </SelectContent>
               </Select>
 
-              <Button variant="ghost" size="sm" onClick={onClose} className="size-9 p-0 text-zinc-500 hover:text-white hover:bg-zinc-900">
+              <Button variant="ghost" size="sm" onClick={onClose} className="size-9 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/10">
                 <X className="size-4" />
               </Button>
             </div>
@@ -204,11 +221,11 @@ export function AIPanel({
             <div className="p-8 space-y-8 max-w-4xl mx-auto">
               {messages.length === 0 ? (
                 <div className="text-center py-32 flex flex-col items-center">
-                  <div className="size-16 rounded-full bg-blue-500/5 flex items-center justify-center border border-blue-500/10 mb-6">
-                    <Bot className="size-8 text-blue-500/40" />
+                  <div className="size-16 rounded-full bg-primary/5 flex items-center justify-center border border-primary/10 mb-6">
+                    <Bot className="size-8 text-primary/40" />
                   </div>
-                  <p className="text-sm font-mono text-zinc-400 font-bold tracking-widest uppercase">Engine Standby</p>
-                  <p className="text-xs font-mono text-zinc-600 mt-3 max-w-xs leading-relaxed">
+                  <p className="text-sm font-mono text-muted-foreground font-bold tracking-widest uppercase">Engine Standby</p>
+                  <p className="text-xs font-mono text-muted-foreground/60 mt-3 max-w-xs leading-relaxed">
                     Attach evidence files and prompt the engine to begin analysis. Ensure a model is selected in the header.
                   </p>
                 </div>
@@ -216,32 +233,32 @@ export function AIPanel({
                 messages.map((msg) => (
                   <div key={msg.id} className={cn('flex gap-6', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
                     {msg.role === 'assistant' && (
-                      <div className="size-9 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 mt-1 shadow-inner">
-                        <Bot className="size-5 text-blue-400" />
+                      <div className="size-9 rounded bg-muted/10 border border-border flex items-center justify-center shrink-0 mt-1 shadow-inner">
+                        <Bot className="size-5 text-primary" />
                       </div>
                     )}
                     <div className={cn(
                       'max-w-[85%] rounded-lg px-5 py-4 shadow-sm leading-relaxed',
                       msg.role === 'user' 
-                        ? 'bg-blue-600/10 border border-blue-600/30 text-blue-50' 
-                        : 'bg-zinc-900/40 border border-zinc-800 text-zinc-200'
+                        ? 'bg-primary/10 border border-primary/30 text-foreground' 
+                        : 'bg-muted/10 border border-border text-foreground'
                     )}>
-                      <div className="text-[13px] font-mono whitespace-pre-wrap selection:bg-blue-500/30">
+                      <div className="text-[13px] font-mono whitespace-pre-wrap selection:bg-primary/30">
                         {msg.content}
                       </div>
-                      <div className="flex items-center gap-3 mt-4 pt-2 border-t border-zinc-800/40">
-                        <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-tighter">{msg.timestamp}</span>
+                      <div className="flex items-center gap-3 mt-4 pt-2 border-t border-border/40">
+                        <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-tighter">{msg.timestamp}</span>
                         {msg.model && (
                           <>
-                            <span className="text-[9px] text-zinc-800">|</span>
-                            <span className="text-[9px] font-mono text-blue-500/60 uppercase font-bold">{msg.model}</span>
+                            <span className="text-[9px] text-border">|</span>
+                            <span className="text-[9px] font-mono text-primary/60 uppercase font-bold">{msg.model}</span>
                           </>
                         )}
                       </div>
                     </div>
                     {msg.role === 'user' && (
-                      <div className="size-9 rounded bg-blue-600/20 border border-blue-600/40 flex items-center justify-center shrink-0 mt-1">
-                        <span className="text-xs font-mono font-bold text-blue-400">OPERATOR</span>
+                      <div className="size-9 rounded bg-primary/20 border border-primary/40 flex items-center justify-center shrink-0 mt-1">
+                        <span className="text-xs font-mono font-bold text-primary">OPERATOR</span>
                       </div>
                     )}
                   </div>
@@ -249,11 +266,11 @@ export function AIPanel({
               )}
               {isLoading && (
                 <div className="flex gap-6">
-                  <div className="size-9 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 shadow-inner">
-                    <Loader2 className="size-5 text-blue-500 animate-spin" />
+                  <div className="size-9 rounded bg-muted/10 border border-border flex items-center justify-center shrink-0 shadow-inner">
+                    <Loader2 className="size-5 text-primary animate-spin" />
                   </div>
-                  <div className="bg-zinc-900/20 border border-zinc-800/50 rounded-lg px-5 py-4 flex items-center gap-3">
-                    <span className="text-[10px] font-mono text-zinc-600 animate-pulse uppercase tracking-widest">Processing Intelligence...</span>
+                  <div className="bg-muted/5 border border-border/50 rounded-lg px-5 py-4 flex items-center gap-3">
+                    <span className="text-[10px] font-mono text-muted-foreground animate-pulse uppercase tracking-widest">Processing Intelligence...</span>
                   </div>
                 </div>
               )}
@@ -262,17 +279,17 @@ export function AIPanel({
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="p-4 border-t border-zinc-800 bg-zinc-950 shrink-0">
+          <div className="p-4 border-t border-border bg-background shrink-0">
             <div className="max-w-4xl mx-auto space-y-4">
               {selectedEvidenceFiles.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-mono text-zinc-500 flex items-center gap-1.5 uppercase font-bold mr-1">
+                  <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1.5 uppercase font-bold mr-1">
                     <Paperclip className="size-3" /> Injected Context:
                   </span>
                   {selectedEvidenceFiles.map(f => (
-                    <span key={`${f.target}-${f.filename}`} className="text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded flex items-center gap-2 transition-all hover:border-blue-500/40">
+                    <span key={`${f.target}-${f.filename}`} className="text-[10px] font-mono bg-primary/10 text-primary border border-primary/20 px-2 py-1 rounded flex items-center gap-2 transition-all hover:border-primary/40">
                       {f.filename}
-                      <button onClick={() => onToggleEvidenceFile(f.target, f.filename)} className="hover:text-red-400"><X className="size-2.5" /></button>
+                      <button onClick={() => onToggleEvidenceFile(f.target, f.filename)} className="hover:text-destructive"><X className="size-2.5" /></button>
                     </span>
                   ))}
                 </div>
@@ -284,12 +301,22 @@ export function AIPanel({
                   size="sm"
                   onClick={() => setIsContextModalOpen(true)}
                   className={cn(
-                    "h-12 w-12 rounded-lg border-zinc-800 bg-zinc-900 flex-shrink-0 transition-all",
-                    selectedEvidenceFiles.length > 0 ? "text-blue-400 border-blue-500/30 bg-blue-500/5" : "text-zinc-500 hover:text-white hover:bg-zinc-800"
+                    "h-12 w-12 rounded-lg border-border bg-muted/10 flex-shrink-0 transition-all",
+                    selectedEvidenceFiles.length > 0 ? "text-primary border-primary/30 bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-muted/20"
                   )}
                   title="Attach Evidence Context"
                 >
                   <Paperclip className="size-5" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleInjectSessionContext}
+                  className="h-12 w-12 rounded-lg border-border bg-muted/10 flex-shrink-0 text-muted-foreground hover:text-accent hover:bg-accent/10"
+                  title="Inject Real-time Session Data"
+                >
+                  <Folder className="size-5" />
                 </Button>
 
                 <div className="flex-1 relative flex items-center">
@@ -298,15 +325,15 @@ export function AIPanel({
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                    placeholder={selectedModel ? "Analyze evidence with Gemini 3.1 / GPT-5.5..." : "Select a model to begin analysis..."}
+                    placeholder={selectedModel ? "Analyze evidence with AI..." : "Select a model to begin analysis..."}
                     disabled={isLoading || !selectedModel}
-                    className="h-12 pl-4 pr-12 font-mono text-sm bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-700 focus-visible:ring-1 focus-visible:ring-blue-500/30 rounded-lg"
+                    className="h-12 pl-4 pr-12 font-mono text-sm bg-muted/10 border-border text-foreground placeholder:text-muted-foreground/40 focus-visible:ring-1 focus-visible:ring-primary/30 rounded-lg"
                   />
                   <Button
                     size="sm"
                     onClick={handleSendMessage}
                     disabled={!inputValue.trim() || isLoading || !selectedModel}
-                    className="absolute right-1.5 h-9 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition-all shadow-lg"
+                    className="absolute right-1.5 h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md transition-all shadow-lg"
                   >
                     {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                   </Button>

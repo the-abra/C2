@@ -42,16 +42,10 @@ cd ..
 # 4. Launch System
 echo "🛡️ Launching C2 Command Center..."
 
-# Check if port 80 is occupied
-if lsof -Pi :80 -sTCP:LISTEN -t >/dev/null ; then
-    echo "⚠️ Warning: Port 80 is already in use."
-    # Try to kill if requested or just exit
+# Check if port 8080 is occupied
+if lsof -Pi :8080 -sTCP:LISTEN -t >/dev/null ; then
+    echo "⚠️ Warning: Port 8080 is already in use."
 fi
 
 cd c2-backend
-# Check if sudo is needed (for port 80)
-if [ "$EUID" -ne 0 ]; then
-    sudo ./c2-server
-else
-    ./c2-server
-fi
+./c2-server

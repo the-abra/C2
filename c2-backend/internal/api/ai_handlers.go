@@ -1,12 +1,12 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -85,24 +85,29 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 
 	prompt.WriteString("User Message: " + req.Message)
 
-	// 2. Resolve API Key & Provider
+	// 2. Resolve API Key
 	apiKey := req.APIKey
 	if apiKey == "" {
-		// Fallback to DB (Not implemented yet in store, let's assume we can fetch it)
-		// For now, we expect it from the UI or stored in a persistent way
+		configs, _ := h.Store.GetAIConfigs()
+		for provider, cfg := range configs {
+			if (provider == "OpenAI" && strings.Contains(req.Model, "gpt")) ||
+			   (provider == "Google" && strings.Contains(req.Model, "gemini")) ||
+			   (provider == "Anthropic" && strings.Contains(req.Model, "claude")) {
+				apiKey = cfg["key"]
+				break
+			}
+		}
 	}
 
+	// 3. Call AI Client
+	// Note: We are prioritizing Ollama as per user instruction
 	var proxyResp string
 	var err error
-
-	if strings.Contains(req.Model, "gpt") {
-		proxyResp, err = h.proxyOpenAI(req.Model, prompt.String(), apiKey)
-	} else if strings.Contains(req.Model, "gemini") {
-		proxyResp, err = h.proxyGemini(req.Model, prompt.String(), apiKey)
-	} else if strings.Contains(req.Model, "claude") {
-		proxyResp, err = h.proxyAnthropic(req.Model, prompt.String(), apiKey)
+	if strings.HasPrefix(req.Model, "ollama/") || !strings.Contains(req.Model, "gpt") && !strings.Contains(req.Model, "gemini") && !strings.Contains(req.Model, "claude") {
+		modelName := strings.TrimPrefix(req.Model, "ollama/")
+		proxyResp, err = h.AI.ProxyOllama(modelName, prompt.String())
 	} else {
-		proxyResp = fmt.Sprintf("[Mock %s] No provider implementation found.", req.Model)
+		proxyResp, err = h.AI.ProxyCall(req.Model, prompt.String(), apiKey)
 	}
 
 	if err != nil {
@@ -119,77 +124,63 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *Handler) proxyOpenAI(model, prompt, key string) (string, error) {
-	if key == "" { return "OpenAI API Key missing.", nil }
-	payload := map[string]interface{}{
-		"model": model,
-		"messages": []map[string]string{{"role": "user", "content": prompt}},
-	}
-	body, _ := json.Marshal(payload)
-	httpReq, _ := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", bytes.NewBuffer(body))
-	httpReq.Header.Set("Authorization", "Bearer "+key)
-	httpReq.Header.Set("Content-Type", "application/json")
-	
-	client := &http.Client{}
-	resp, err := client.Do(httpReq)
-	if err != nil { return "", err }
-	defer resp.Body.Close()
-	
-	var res map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&res)
-	if choices, ok := res["choices"].([]interface{}); ok && len(choices) > 0 {
-		if msg, ok := choices[0].(map[string]interface{})["message"].(map[string]interface{}); ok {
-			return msg["content"].(string), nil
+func (h *Handler) SuggestNextSteps(w http.ResponseWriter, r *http.Request) {
+	sessionID, _ := strconv.ParseInt(r.URL.Query().Get("session_id"), 10, 64)
+	model := r.URL.Query().Get("model")
+	if model == "" {
+		// Try to find a local model
+		models, _ := h.AI.ListModels()
+		if len(models) > 0 {
+			model = models[0]
+		} else {
+			model = "llama3"
 		}
 	}
-	return "Invalid response from OpenAI", nil
-}
 
-func (h *Handler) proxyGemini(model, prompt, key string) (string, error) {
-	if key == "" { return "Gemini API Key missing.", nil }
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1/models/%s:generateContent?key=%s", model, key)
-	payload := map[string]interface{}{
-		"contents": []map[string]interface{}{{"parts": []map[string]string{{"text": prompt}}}},
-	}
-	body, _ := json.Marshal(payload)
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(body))
-	if err != nil { return "", err }
-	defer resp.Body.Close()
+	// 1. Gather Context
+	discoveries, _ := h.Store.GetDiscoveries(sessionID)
+	history, _ := h.Store.GetScanHistory(sessionID)
 	
-	var res map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&res)
-	if c, ok := res["candidates"].([]interface{}); ok && len(c) > 0 {
-		if parts, ok := c[0].(map[string]interface{})["content"].(map[string]interface{})["parts"].([]interface{}); ok && len(parts) > 0 {
-			return parts[0].(map[string]interface{})["text"].(string), nil
-		}
+	var ctx strings.Builder
+	ctx.WriteString("Current Discoveries:\n")
+	for i, d := range discoveries {
+		if i > 10 { break }
+		ctx.WriteString(fmt.Sprintf("- %s: %s\n", d.Type, d.Value))
 	}
-	return "Invalid response from Gemini", nil
-}
+	ctx.WriteString("\nRecent History:\n")
+	for i, sh := range history {
+		if i > 5 { break }
+		ctx.WriteString(fmt.Sprintf("- %s on %s: %s\n", sh.ToolName, sh.Target, sh.Status))
+	}
 
-func (h *Handler) proxyAnthropic(model, prompt, key string) (string, error) {
-	if key == "" { return "Anthropic API Key missing.", nil }
-	payload := map[string]interface{}{
-		"model": model,
-		"max_tokens": 4096,
-		"messages": []map[string]string{{"role": "user", "content": prompt}},
+	// 2. Construct Prompt
+	prompt := fmt.Sprintf(`You are the Duelist C2 Tactical AI. 
+Based on the mission context below, suggest 2-3 specific next tactical steps (commands or tool executions).
+The operator is using tools like: nmap, subfinder, nuclei, httpx, ffuf, gobuster, sqlmap.
+
+MISSION CONTEXT:
+%s
+
+OUTPUT FORMAT:
+Return ONLY a valid JSON array of strings, e.g. ["nmap -sV 10.0.0.1", "nuclei -u http://example.com"].
+Do not include any explanation or filler. No markdown blocks, just the raw JSON.`, ctx.String())
+
+	// 3. Call AI
+	resp, err := h.AI.ProxyOllama(model, prompt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	body, _ := json.Marshal(payload)
-	httpReq, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", bytes.NewBuffer(body))
-	httpReq.Header.Set("x-api-key", key)
-	httpReq.Header.Set("anthropic-version", "2023-06-01")
-	httpReq.Header.Set("Content-Type", "application/json")
-	
-	client := &http.Client{}
-	resp, err := client.Do(httpReq)
-	if err != nil { return "", err }
-	defer resp.Body.Close()
-	
-	var res map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&res)
-	if content, ok := res["content"].([]interface{}); ok && len(content) > 0 {
-		if text, ok := content[0].(map[string]interface{})["text"].(string); ok {
-			return text, nil
-		}
+
+	// 4. Parse & Sanitize AI Response (Try to extract JSON array)
+	start := strings.Index(resp, "[")
+	end := strings.LastIndex(resp, "]")
+	if start == -1 || end == -1 {
+		json.NewEncoder(w).Encode([]string{})
+		return
 	}
-	return "Invalid response from Anthropic", nil
+	cleanJSON := resp[start : end+1]
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(cleanJSON))
 }

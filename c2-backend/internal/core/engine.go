@@ -19,10 +19,7 @@ func NewEngine() *Engine {
 }
 
 func normalizeTarget(binary string, target string) string {
-	// List of tools that prefer or require NO http/https prefix (Domain/IP only)
 	needsNoPrefix := []string{"nmap", "amass", "subfinder", "naabu", "masscan", "dnsrecon", "medusa", "hydra"}
-
-	// List of tools that REQUIRE an http/https prefix
 	needsPrefix := []string{"ffuf", "gobuster", "feroxbuster", "nuclei", "nikto", "wpscan", "sqlmap", "commix", "dalfox", "tplmap", "httpx", "arjun"}
 
 	hasPrefix := strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://")
@@ -51,11 +48,9 @@ func normalizeTarget(binary string, target string) string {
 	return target
 }
 
-func (e *Engine) Execute(ctx context.Context, binary string, args []string, target string, stdout, stderr io.Writer) error {
-	// Normalize target based on tool requirements
+func (e *Engine) Execute(ctx context.Context, binary string, args []string, target string, params map[string]string, stdout, stderr io.Writer) error {
 	normalizedTarget := normalizeTarget(binary, target)
 
-	// 1. Resolve Path & Custom Rules
 	var cmdName string
 	var finalArgs []string
 
@@ -81,7 +76,6 @@ func (e *Engine) Execute(ctx context.Context, binary string, args []string, targ
 			cmdName = "python3"
 			finalArgs = append(finalArgs, "/opt/tplmap/tplmap.py")
 		} else {
-			// Try to find in path
 			if p, err := exec.LookPath("tplmap"); err == nil {
 				cmdName = p
 			} else {
@@ -91,7 +85,6 @@ func (e *Engine) Execute(ctx context.Context, binary string, args []string, targ
 	default:
 		resolvedPath, err := exec.LookPath(binary)
 		if err != nil {
-			// Check /usr/bin/vendor_perl for Arch Linux users
 			p := filepath.Join("/usr/bin/vendor_perl", binary)
 			if _, err := os.Stat(p); err == nil {
 				cmdName = p
@@ -103,14 +96,25 @@ func (e *Engine) Execute(ctx context.Context, binary string, args []string, targ
 		}
 	}
 
-	// 2. Placeholder Replacement
+	// Dynamic Placeholder Replacement
+	allParams := make(map[string]string)
+	for k, v := range params {
+		allParams[k] = v
+	}
+	allParams["TARGET"] = normalizedTarget
+	allParams["target"] = normalizedTarget
+	allParams["BINARY"] = binary
+	allParams["HOME"] = homeDir
+
 	for _, arg := range args {
-		processedArg := strings.ReplaceAll(arg, "<target>", normalizedTarget)
+		processedArg := arg
+		for k, v := range allParams {
+			processedArg = strings.ReplaceAll(processedArg, "{{"+k+"}}", v)
+			processedArg = strings.ReplaceAll(processedArg, "<"+k+">", v)
+		}
 		finalArgs = append(finalArgs, processedArg)
 	}
 
-	// 3. Execution setup with PTY
-	// Add a timeout context to prevent orphan processes
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel()
 
@@ -122,7 +126,6 @@ func (e *Engine) Execute(ctx context.Context, binary string, args []string, targ
 	}
 	defer f.Close()
 
-	// Synchronize output reading
 	done := make(chan struct{})
 	go func() {
 		io.Copy(stdout, f)
@@ -130,6 +133,6 @@ func (e *Engine) Execute(ctx context.Context, binary string, args []string, targ
 	}()
 
 	err = cmd.Wait()
-	<-done // Wait for all output to be copied
+	<-done
 	return err
 }

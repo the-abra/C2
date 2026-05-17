@@ -22,33 +22,27 @@ Duelist C2 is a high-performance, multi-threaded Command & Control (C2) interfac
 - **Bruteforce:** Hydra, Medusa, Hashcat.
 - **Forensics:** Binwalk, Exiftool, Steghide, Tshark, Foremost, Bulk_Extractor.
 
-## 🚀 Installation (Arch Linux)
+## 🚀 Rapid Engagement
 
-The system is optimized for Arch Linux. Use the provided setup script to install all dependencies at once.
+The system is optimized for Arch Linux. Use the integrated entrypoint for a one-click launch.
 
-1.  **Clone the Repository:**
+1.  **Clone & Setup:**
     ```bash
-    git clone https://github.com/yourusername/duelist-c2.git
-    cd duelist-c2
-    ```
-
-2.  **Run Arsenal Setup:**
-    ```bash
+    git clone https://github.com/the-abra/C2.git
+    cd C2
+    chmod +x entrypoint.sh setup.sh scripts/cleanup.sh
     ./setup.sh
     ```
 
-3.  **Start Backend (Go):**
+2.  **Launch Dashboard:**
     ```bash
-    cd c2-backend
-    go run cmd/server/main.go
+    # This builds frontend, backend, and starts servers
+    ./entrypoint.sh
     ```
 
-4.  **Start Frontend (React/Next.js):**
-    ```bash
-    cd c2-frontend
-    npm install
-    npm run dev
-    ```
+3.  **Access:**
+    - Dashboard: `http://localhost:8080`
+    - API Hub: `http://localhost:1453`
 
 ## 🧠 AI Configuration
 

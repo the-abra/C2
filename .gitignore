@@ -30,6 +30,8 @@ certs/
 c2-backend/c2-server
 c2-backend/server
 c2-backend/cmd/server/main
+c2-server
+server
 *.exe
 *.exe~
 *.dll
@@ -44,11 +46,13 @@ c2-backend/wordlists/
 *.sqlite
 *.sqlite-journal
 *.sqlite3
+data/*
+!data/.gitkeep
 c2-backend/data/c2.sqlite
-c2-backend/data/targets/*
-c2-backend/data/uploads/*
-!c2-backend/data/targets/.gitkeep
-!c2-backend/data/uploads/.gitkeep
+targets/*
+uploads/*
+!targets/.gitkeep
+!uploads/.gitkeep
 
 # --- Node / React (Frontend) ---
 c2-frontend/node_modules/

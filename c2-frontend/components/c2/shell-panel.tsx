@@ -25,11 +25,19 @@ export function ShellPanel({ isOpen, onClose, backendUrl }: ShellPanelProps) {
       const term = new XTerm({
         cursorBlink: true,
         fontSize: 13,
-        fontFamily: '"Fira Code", monospace',
+        fontFamily: 'var(--font-mono)',
         theme: {
-          background: '#09090b',
-          foreground: '#a1a1aa',
-          cursor: '#3b82f6',
+          background: 'var(--terminal-bg)',
+          foreground: 'var(--terminal-fg)',
+          cursor: 'var(--primary)',
+          black: '#000000',
+          red: 'var(--destructive)',
+          green: 'var(--accent)',
+          yellow: 'var(--warning)',
+          blue: 'var(--primary)',
+          magenta: 'var(--primary)',
+          cyan: 'var(--primary)',
+          white: 'var(--foreground)',
         },
       })
       const fitAddon = new FitAddon()
@@ -52,7 +60,7 @@ export function ShellPanel({ isOpen, onClose, backendUrl }: ShellPanelProps) {
         term.write(new Uint8Array(event.data))
       }
 
-      term.onData((data) => {
+      term.onData((data: string) => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(data)
         }
@@ -79,14 +87,14 @@ export function ShellPanel({ isOpen, onClose, backendUrl }: ShellPanelProps) {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={onClose} />
       
       <div className={cn(
         "relative flex flex-col bg-card border border-border shadow-2xl rounded-lg overflow-hidden transition-all duration-300",
         isMaximized ? "w-full h-full" : "w-full max-w-4xl h-[70vh]"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/40">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/10">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center size-8 rounded bg-primary/10 border border-primary/20">
               <Terminal className="size-4 text-primary" />
@@ -118,7 +126,7 @@ export function ShellPanel({ isOpen, onClose, backendUrl }: ShellPanelProps) {
         </div>
 
         {/* Terminal Area */}
-        <div className="flex-1 min-h-0 bg-[#09090b] p-2">
+        <div className="flex-1 min-h-0 bg-terminal p-2">
           <div ref={terminalRef} className="h-full w-full" />
         </div>
       </div>

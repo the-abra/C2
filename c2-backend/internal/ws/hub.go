@@ -14,9 +14,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type Message struct {
-	Type    string `json:"type"`    // "log", "status"
-	Tool    string `json:"tool,omitempty"`
-	Payload string `json:"payload"`
+	Type      string      `json:"type"` // "log", "status", "discovery", "note_update", "ai_advice"
+	SessionID int64       `json:"session_id,omitempty"`
+	Tool      string      `json:"tool,omitempty"`
+	Payload   string      `json:"payload,omitempty"`
+	Data      interface{} `json:"data,omitempty"`
 }
 
 type Hub struct {
@@ -65,12 +67,30 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) BroadcastLog(tool, payload string) {
-	h.broadcast <- Message{Type: "log", Tool: tool, Payload: payload}
+func (h *Hub) BroadcastLog(sessionID int64, tool, payload string) {
+	h.broadcast <- Message{Type: "log", SessionID: sessionID, Tool: tool, Payload: payload}
 }
 
-func (h *Hub) BroadcastStatus(tool, status string) {
-	h.broadcast <- Message{Type: "status", Tool: tool, Payload: status}
+func (h *Hub) BroadcastStatus(sessionID int64, tool, status string) {
+	h.broadcast <- Message{Type: "status", SessionID: sessionID, Tool: tool, Payload: status}
+}
+
+func (h *Hub) BroadcastDiscovery(discovery interface{}) {
+	h.broadcast <- Message{Type: "discovery", Data: discovery}
+}
+
+func (h *Hub) BroadcastNoteUpdate(sessionID int64, target string) {
+	h.broadcast <- Message{Type: "note_update", SessionID: sessionID, Payload: target}
+}
+
+func (h *Hub) BroadcastAIAdvice(sessionID int64, tool, target, message string) {
+	h.broadcast <- Message{
+		Type:      "ai_advice",
+		SessionID: sessionID,
+		Tool:      tool,
+		Payload:   message,
+		Data:      map[string]string{"target": target},
+	}
 }
 
 func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -84,8 +104,9 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // WSWriter implements io.Writer to pipe logs to WebSocket
 type WSWriter struct {
-	Hub      *Hub
-	ToolName string
+	Hub       *Hub
+	SessionID int64
+	ToolName  string
 }
 
 func (w *WSWriter) Write(p []byte) (n int, err error) {
@@ -93,7 +114,7 @@ func (w *WSWriter) Write(p []byte) (n int, err error) {
 		return 0, nil
 	}
 	// Send raw data chunk immediately to allow xterm.js to handle ANSI codes/progress bars
-	w.Hub.BroadcastLog(w.ToolName, string(p))
+	w.Hub.BroadcastLog(w.SessionID, w.ToolName, string(p))
 	return len(p), nil
 }
 

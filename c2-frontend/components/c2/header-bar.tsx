@@ -1,32 +1,41 @@
 'use client'
 
-import { Target, Zap, Play, Square, FileText, ChevronDown, HardDrive, File } from 'lucide-react'
+import { useState, useCallback, useMemo } from 'react'
+import { 
+  Target, Play, XCircle, FileText, ChevronDown, 
+  Settings, Bot, Sparkles, Upload, Activity, Shield, Zap
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { type AttackProfile } from '@/lib/api-service'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useC2Store } from '@/hooks/use-c2-store'
+import { runScenario, type AttackProfile } from '@/lib/api-service'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
 
 interface HeaderBarProps {
   selectedToolName: string
   processStatus: string
   target: string
-  onTargetChange: (v: string) => void
-  selectedProfile?: AttackProfile
-  profiles: AttackProfile[]
-  onProfileChange: (p: AttackProfile) => void
+  onTargetChange: (target: string) => void
+  selectedProfile: any
+  profiles: any[]
+  onProfileChange: (profile: any) => void
   onExecute: () => void
   onCancel: () => void
   onOpenNotes: () => void
   onOpenEvidence: () => void
   onOpenUploads: () => void
-  uploads: string[]
+  uploads: any[]
   selectedToolCategory?: string
+  autoPilotEnabled: boolean
+  onToggleAutoPilot: (enabled: boolean) => void
 }
 
 export function HeaderBar({
@@ -44,132 +53,113 @@ export function HeaderBar({
   onOpenUploads,
   uploads,
   selectedToolCategory,
+  autoPilotEnabled,
+  onToggleAutoPilot,
 }: HeaderBarProps) {
-  const isRunning = processStatus === 'running'
-  const isFileBased = selectedToolCategory === 'Forensics'
+  const { toast } = useToast()
+  const store = useC2Store()
+  const selectedScenario = store.scenarios.find(s => s.id === store.selectedScenarioId)
+
+  const handleRun = async () => {
+    if (store.selectedScenarioId) {
+       try {
+         await runScenario(store.backendUrl, store.currentSessionId || 0, store.selectedScenarioId, target)
+         toast({ title: "Scenario Engaged", description: `Mission '${selectedScenario?.name}' is now active.` })
+       } catch (e: any) {
+         toast({ title: "Engagement Failed", description: e.message, variant: "destructive" })
+       }
+    } else {
+       onExecute()
+    }
+  }
 
   return (
-    <header className="flex items-center gap-4 px-6 py-4 bg-muted/20 border-b border-border h-20 shadow-sm shrink-0">
-      {/* Target Selection */}
-      <div className="flex items-center gap-3 bg-card border border-border rounded-md px-3 h-10 w-96 shadow-inner group focus-within:border-primary/50 transition-all">
-        {isFileBased ? (
-          <File className="size-4 text-blue-400 group-focus-within:text-primary transition-colors shrink-0" />
-        ) : (
-          <Target className="size-4 text-muted-foreground group-focus-within:text-primary transition-colors shrink-0" />
-        )}
-        
-        {isFileBased ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex-1 text-left font-mono text-xs text-zinc-300 truncate outline-none">
-                {target || "SELECT UPLOADED FILE"}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-80 font-mono text-xs z-[200] bg-popover border-border shadow-2xl">
-              {uploads.length === 0 ? (
-                <div className="p-4 text-center text-zinc-500 italic">No files uploaded. Use File Manager.</div>
-              ) : (
-                uploads.map((file) => (
-                  <DropdownMenuItem
-                    key={file}
-                    onClick={() => onTargetChange(file)}
-                    className="cursor-pointer hover:bg-accent/10"
-                  >
-                    {file}
-                  </DropdownMenuItem>
-                ))
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
+    <header className="h-16 border-b border-border bg-card/30 backdrop-blur-md flex items-center justify-between px-6 shrink-0 relative z-[30]">
+      {/* Target Section */}
+      <div className="flex items-center gap-4 flex-1 min-w-0 max-w-2xl">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/10 border border-border rounded-md shrink-0">
+          <Target className="size-3.5 text-primary" />
+          <span className="text-[10px] font-black font-mono text-muted-foreground uppercase tracking-widest">Global Target</span>
+        </div>
+        <div className="relative flex-1 group">
           <Input
             value={target}
             onChange={(e) => onTargetChange(e.target.value)}
-            placeholder="TARGET IP / DOMAIN"
-            className="h-8 border-none bg-transparent font-mono text-xs focus-visible:ring-0 placeholder:opacity-50"
+            placeholder="IP ADDRESS / DOMAIN / URL"
+            className="h-10 pl-4 pr-10 font-mono text-xs bg-muted/10 border-border focus-visible:ring-1 focus-visible:ring-primary/40 transition-all uppercase placeholder:opacity-30"
           />
-        )}
-      </div>
-
-      {/* Profile Selection */}
-      <div className="flex-1 max-w-md">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              className="w-full justify-between h-10 font-mono text-xs border-border bg-card shadow-sm hover:bg-muted/50"
+          {target && (
+            <button 
+              onClick={() => onTargetChange('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <div className="flex items-center gap-2 truncate">
-                <Zap className="size-3.5 text-accent" />
-                <span className="text-muted-foreground">Profile:</span>
-                <span className="text-foreground truncate font-bold">{selectedProfile?.name || 'Select Profile'}</span>
-              </div>
-              <ChevronDown className="size-4 text-muted-foreground shrink-0" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-80 font-mono text-xs z-[200] bg-popover border-border shadow-2xl">
-            {profiles.map((p) => (
-              <DropdownMenuItem
-                key={p.id}
-                onClick={() => onProfileChange(p)}
-                className="cursor-pointer hover:bg-accent/10"
-              >
-                {p.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <XCircle className="size-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Global Actions */}
-      <div className="flex items-center gap-2 ml-auto">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onOpenUploads}
-          title="Tactical File Manager"
-          className="h-10 w-10 border-border bg-card hover:bg-muted"
-        >
-          <HardDrive className="size-4 text-blue-400" />
-        </Button>
-        <Button
-          variant="outline"
-          onClick={onOpenEvidence}
-          className="h-10 px-4 gap-2 font-mono text-xs border-border bg-card hover:bg-muted"
-        >
-          <FileText className="size-4 text-muted-foreground" />
-          Evidence
-        </Button>
-        <Button
-          variant="outline"
-          onClick={onOpenNotes}
-          className="h-10 px-4 gap-2 font-mono text-xs border-border bg-card hover:bg-muted"
-        >
-          <FileText className="size-4 text-muted-foreground" />
-          Notes
-        </Button>
+      {/* Right Actions */}
+      <div className="flex items-center gap-3">
+        {/* Workspace Quick-Actions */}
+        <div className="flex items-center gap-1 mr-2">
+          <Button variant="ghost" size="sm" onClick={onOpenUploads} className="h-10 px-3 font-mono text-[10px] text-muted-foreground hover:text-foreground uppercase tracking-widest gap-2">
+             <Upload className="size-3.5" />
+             Payloads
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onOpenEvidence} className="h-10 px-3 font-mono text-[10px] text-muted-foreground hover:text-foreground uppercase tracking-widest gap-2">
+             <Activity className="size-3.5" />
+             Evidence
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onOpenNotes} className="h-10 px-3 font-mono text-[10px] text-muted-foreground hover:text-foreground uppercase tracking-widest gap-2">
+             <FileText className="size-3.5" />
+             Notes
+          </Button>
+        </div>
 
         <div className="w-px h-6 bg-border mx-2" />
 
-        {isRunning ? (
-          <Button
-            variant="destructive"
-            onClick={onCancel}
-            className="h-10 px-6 gap-2 font-mono text-xs shadow-lg shadow-destructive/20 animate-pulse"
-          >
-            <Square className="size-4 fill-current" />
-            Kill Process
-          </Button>
-        ) : (
-          <Button
-            onClick={onExecute}
-            disabled={!target.trim() || !selectedToolName || !selectedProfile}
-            className="h-10 px-8 gap-2 font-mono text-xs bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
-          >
-            <Play className="size-4 fill-current" />
-            Engage Duelist
-          </Button>
-        )}
+        {/* Execution Actions */}
+        <div className="flex items-center gap-1.5 ml-2">
+          {store.selectedScenarioId ? (
+            <div className="flex flex-col items-end mr-4 animate-in fade-in slide-in-from-right-1">
+              <span className="text-[9px] font-black font-mono text-primary uppercase leading-none mb-1">Scenario Chain</span>
+              <span className="text-[10px] font-mono text-foreground uppercase truncate max-w-[150px] font-bold">{selectedScenario?.name}</span>
+            </div>
+          ) : (
+            <Select value={selectedProfile?.id.toString()} onValueChange={(v) => onProfileChange(profiles.find(p => p.id.toString() === v)!)}>
+              <SelectTrigger className="w-[180px] h-10 bg-muted/10 border-border text-[10px] font-mono uppercase">
+                <SelectValue placeholder="Attack Profile" />
+              </SelectTrigger>
+              <SelectContent className="font-mono text-xs">
+                {profiles.map((p) => (
+                  <SelectItem key={p.id} value={p.id.toString()}>{p.name.toUpperCase()}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {processStatus === 'running' ? (
+            <Button 
+              variant="destructive" 
+              onClick={onCancel}
+              className="h-10 px-4 font-bold font-mono text-xs uppercase"
+            >
+              <XCircle className="size-4 mr-2" /> Abort
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleRun}
+              disabled={!target.trim() || (!selectedProfile && !store.selectedScenarioId)}
+              className="h-10 px-6 font-black font-mono text-xs uppercase bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all group"
+            >
+              <Play className="size-4 mr-2 fill-current group-hover:scale-110 transition-transform" /> 
+              Engage
+            </Button>
+          )}
+        </div>
       </div>
     </header>
   )

@@ -8,14 +8,13 @@ import (
 	"path/filepath"
 )
 
-const uploadDir = "data/uploads"
 
 func (h *Handler) ListUploads(w http.ResponseWriter, r *http.Request) {
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		os.MkdirAll(uploadDir, 0755)
+	if _, err := os.Stat(h.UploadDir); os.IsNotExist(err) {
+		os.MkdirAll(h.UploadDir, 0755)
 	}
 
-	files, err := os.ReadDir(uploadDir)
+	files, err := os.ReadDir(h.UploadDir)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -33,8 +32,8 @@ func (h *Handler) ListUploads(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
-		os.MkdirAll(uploadDir, 0755)
+	if _, err := os.Stat(h.UploadDir); os.IsNotExist(err) {
+		os.MkdirAll(h.UploadDir, 0755)
 	}
 
 	r.ParseMultipartForm(32 << 20) // 32MB max
@@ -47,7 +46,7 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	// Sanitize filename
 	filename := filepath.Base(header.Filename)
-	dstPath := filepath.Join(uploadDir, filename)
+	dstPath := filepath.Join(h.UploadDir, filename)
 
 	dst, err := os.Create(dstPath)
 	if err != nil {
@@ -74,7 +73,7 @@ func (h *Handler) DeleteUpload(w http.ResponseWriter, r *http.Request) {
 
 	// Sanitize to prevent path traversal
 	filename = filepath.Base(filename)
-	filePath := filepath.Join(uploadDir, filename)
+	filePath := filepath.Join(h.UploadDir, filename)
 
 	if err := os.Remove(filePath); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -1,18 +1,20 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { FileText, X, Edit3, Eye, Download, Trash2, Copy } from 'lucide-react'
+import { FileText, X, Edit3, Eye, Download, Trash2, Copy, Save, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
-import { get, set } from 'idb-keyval'
+import { fetchNote, saveNote } from '@/lib/api-service'
 
 interface NotesModalProps {
   isOpen: boolean
   onClose: () => void
-  target?: string
+  backendUrl: string
+  target: string
+  sessionId: number
 }
 
 const DEFAULT_TEMPLATE = `# Penetration Test Report
@@ -60,43 +62,45 @@ const DEFAULT_TEMPLATE = `# Penetration Test Report
 \`\`\`
 `
 
-export function NotesModal({ isOpen, onClose, target = 'global' }: NotesModalProps) {
+export function NotesModal({ isOpen, onClose, backendUrl, target, sessionId }: NotesModalProps) {
   const [content, setContent] = useState(DEFAULT_TEMPLATE)
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit')
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  // Load note from IndexedDB on mount or target change
+  // Load note from backend on mount or target/session change
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || !sessionId || !target) return
     const loadNote = async () => {
+      setLoading(true)
       try {
-        const savedNotes = await get<Record<string, string>>('tactical_notes') || {}
-        if (savedNotes[target]) {
-          setContent(savedNotes[target])
+        const data = await fetchNote(backendUrl, sessionId, target)
+        if (data.content) {
+          setContent(data.content)
         } else {
-          // Replace placeholder in template if no note exists
-          const templateWithTarget = DEFAULT_TEMPLATE.replace('[TARGET_IP/URL]', target === 'global' ? '[TARGET_IP/URL]' : target)
+          const templateWithTarget = DEFAULT_TEMPLATE.replace('[TARGET_IP/URL]', target)
           setContent(templateWithTarget)
         }
       } catch (e) {
-        console.error('Failed to load note from IndexedDB', e)
+        console.error('Failed to load note from backend', e)
+      } finally {
+        setLoading(false)
       }
     }
     loadNote()
-  }, [isOpen, target])
+  }, [isOpen, target, sessionId, backendUrl])
 
-  const handleContentChange = useCallback(
-    async (newContent: string) => {
-      setContent(newContent)
-      try {
-        const savedNotes = await get<Record<string, string>>('tactical_notes') || {}
-        savedNotes[target] = newContent
-        await set('tactical_notes', savedNotes)
-      } catch (e) {
-        console.error('Failed to save note to IndexedDB', e)
-      }
-    },
-    [target]
-  )
+  const handleSave = async () => {
+    if (!sessionId || !target) return
+    setSaving(true)
+    try {
+      await saveNote(backendUrl, sessionId, target, content)
+    } catch (e) {
+      console.error('Failed to save note', e)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content)
@@ -113,47 +117,42 @@ export function NotesModal({ isOpen, onClose, target = 'global' }: NotesModalPro
   }
 
   const handleClear = () => {
-    handleContentChange('')
+    setContent('')
   }
 
   const handleLoadTemplate = () => {
-    const templateWithTarget = DEFAULT_TEMPLATE.replace('[TARGET_IP/URL]', target === 'global' ? '[TARGET_IP/URL]' : target)
-    handleContentChange(templateWithTarget)
+    const templateWithTarget = DEFAULT_TEMPLATE.replace('[TARGET_IP/URL]', target)
+    setContent(templateWithTarget)
   }
 
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-4xl h-[85vh] mx-4 flex flex-col bg-zinc-950 border border-zinc-800 rounded-md shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-4xl h-[85vh] mx-4 flex flex-col bg-background border border-border rounded-md shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900/50 shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/10 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-8 rounded bg-zinc-900 border border-zinc-800 shadow-inner">
-              <FileText className="size-4 text-zinc-400" />
+            <div className="flex items-center justify-center size-8 rounded bg-muted/10 border border-border shadow-inner">
+              <FileText className="size-4 text-muted-foreground" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold font-mono text-zinc-100">Ghost Notes</h2>
-              <p className="text-[10px] font-mono text-zinc-500">Target: <span className="text-blue-400">{target}</span></p>
+              <h2 className="text-sm font-semibold font-mono text-foreground uppercase tracking-tight">Mission Intelligence</h2>
+              <p className="text-[10px] font-mono text-muted-foreground uppercase">Target: <span className="text-primary">{target}</span></p>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-1 bg-zinc-900 rounded p-0.5 border border-zinc-800">
+          <div className="flex items-center gap-1 bg-muted/10 rounded p-0.5 border border-border">
             <button
               onClick={() => setActiveTab('edit')}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-colors',
                 activeTab === 'edit'
-                  ? 'bg-zinc-800 text-zinc-100 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
+                  ? 'bg-muted text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
             >
               <Edit3 className="size-3" />
@@ -164,8 +163,8 @@ export function NotesModal({ isOpen, onClose, target = 'global' }: NotesModalPro
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-colors',
                 activeTab === 'preview'
-                  ? 'bg-zinc-800 text-zinc-100 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
+                  ? 'bg-muted text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               )}
             >
               <Eye className="size-3" />
@@ -176,10 +175,20 @@ export function NotesModal({ isOpen, onClose, target = 'global' }: NotesModalPro
           {/* Actions */}
           <div className="flex items-center gap-1">
             <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSave}
+              disabled={saving}
+              className="h-7 px-3 text-[10px] font-mono uppercase bg-primary/10 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-all"
+            >
+              {saving ? <Loader2 className="size-3 animate-spin mr-1" /> : <Save className="size-3 mr-1" />}
+              Commit
+            </Button>
+            <Button
               variant="ghost"
               size="sm"
               onClick={handleLoadTemplate}
-              className="h-7 px-2 text-xs font-mono text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+              className="h-7 px-2 text-xs font-mono text-muted-foreground hover:text-foreground hover:bg-muted/10"
             >
               Template
             </Button>
@@ -187,7 +196,7 @@ export function NotesModal({ isOpen, onClose, target = 'global' }: NotesModalPro
               variant="ghost"
               size="sm"
               onClick={handleCopy}
-              className="size-7 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+              className="size-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/10"
               title="Copy to clipboard"
             >
               <Copy className="size-3.5" />
@@ -196,7 +205,7 @@ export function NotesModal({ isOpen, onClose, target = 'global' }: NotesModalPro
               variant="ghost"
               size="sm"
               onClick={handleDownload}
-              className="size-7 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+              className="size-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/10"
               title="Download as .md"
             >
               <Download className="size-3.5" />
@@ -205,17 +214,17 @@ export function NotesModal({ isOpen, onClose, target = 'global' }: NotesModalPro
               variant="ghost"
               size="sm"
               onClick={handleClear}
-              className="size-7 p-0 text-zinc-400 hover:text-red-400 hover:bg-red-500/10"
+              className="size-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
               title="Clear content"
             >
               <Trash2 className="size-3.5" />
             </Button>
-            <div className="w-px h-5 bg-zinc-800 mx-1" />
+            <div className="w-px h-5 bg-border mx-1" />
             <Button
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="size-7 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+              className="size-7 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/10"
             >
               <X className="size-4" />
             </Button>
@@ -223,18 +232,23 @@ export function NotesModal({ isOpen, onClose, target = 'global' }: NotesModalPro
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 min-h-0 overflow-hidden bg-black">
-          {activeTab === 'edit' ? (
+        <div className="flex-1 min-h-0 overflow-hidden bg-background">
+          {loading ? (
+            <div className="w-full h-full flex flex-col items-center justify-center space-y-4 opacity-50">
+              <Loader2 className="size-8 text-primary animate-spin" />
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Retrieving Tactical Notes...</p>
+            </div>
+          ) : activeTab === 'edit' ? (
             <textarea
               value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
-              className="w-full h-full resize-none bg-transparent text-green-400 font-mono text-[13px] p-6 focus:outline-none focus:ring-0 border-0 leading-relaxed selection:bg-green-900/40"
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full h-full resize-none bg-transparent text-term-success font-mono text-[13px] p-6 focus:outline-none focus:ring-0 border-0 leading-relaxed selection:bg-primary/30"
               placeholder="Start typing your tactical notes here..."
               spellCheck={false}
             />
           ) : (
-            <ScrollArea className="h-full bg-zinc-950">
-              <div className="p-8 prose prose-invert prose-sm max-w-none prose-headings:font-mono prose-headings:text-zinc-100 prose-p:text-zinc-400 prose-strong:text-zinc-200 prose-code:text-blue-400 prose-code:bg-blue-900/20 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-sm prose-pre:bg-black prose-pre:border prose-pre:border-zinc-800 prose-th:text-zinc-300 prose-td:text-zinc-400 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline">
+            <ScrollArea className="h-full bg-background">
+              <div className="p-8 prose prose-invert prose-sm max-w-none prose-headings:font-mono prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-code:text-primary prose-code:bg-primary/20 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-sm prose-pre:bg-background prose-pre:border prose-pre:border-border prose-th:text-foreground prose-td:text-muted-foreground prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
               </div>
             </ScrollArea>
@@ -242,13 +256,13 @@ export function NotesModal({ isOpen, onClose, target = 'global' }: NotesModalPro
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-2 border-t border-zinc-800 bg-zinc-900/50 shrink-0">
-          <span className="text-[10px] font-mono text-zinc-500">
-            {content.length} characters | {content.split('\n').length} lines
+        <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-muted/10 shrink-0">
+          <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+            {content.length} CHARS | {content.split('\n').length} LINES
           </span>
-          <span className="text-[10px] font-mono text-blue-400/80 flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-blue-400 animate-pulse" />
-            Auto-saved to GhostDB (IndexedDB)
+          <span className="text-[10px] font-mono text-primary/80 flex items-center gap-1.5 uppercase tracking-widest">
+            <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+            Tactical Sync Active
           </span>
         </div>
       </div>

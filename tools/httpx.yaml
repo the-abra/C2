@@ -1,0 +1,10 @@
+name: httpx
+category: Recon
+description: HTTP Toolkit for probing
+binary: httpx
+profiles:
+  - name: Title & Status
+    args: ["-u", "{{TARGET}}", "-title", "-status-code", "-silent"]
+parsers:
+  - type: service
+    regex: '(https?://[^\s\[\x1b]+)'

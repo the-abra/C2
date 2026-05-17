@@ -1,0 +1,16 @@
+name: Nmap
+category: Recon
+description: Network Exploration and Security Auditing
+binary: nmap
+profiles:
+  - name: Stealth Scan
+    args: ["-sS", "-sV", "-T3", "{{TARGET}}"]
+  - name: Fast Scan (Top 100)
+    args: ["-F", "{{TARGET}}"]
+  - name: Safe NSE Scripts
+    args: ["-sV", "--script", "safe", "{{TARGET}}"]
+parsers:
+  - type: ip
+    regex: '(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+  - type: service
+    regex: '(\d+)/(tcp|udp)\s+open\s+([^\s]+)'

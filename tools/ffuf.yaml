@@ -1,0 +1,12 @@
+name: ffuf
+category: Fuzzing
+description: Fast web fuzzer
+binary: ffuf
+profiles:
+  - name: Directory Fuzz
+    args: ["-w", "{{WORDLIST}}", "-u", "{{TARGET}}/FUZZ", "-fc", "404", "-r", "-noninteractive"]
+  - name: Parameter Discovery
+    args: ["-w", "{{WORDLIST}}", "-u", "{{TARGET}}?FUZZ=test", "-fc", "404", "-noninteractive"]
+parsers:
+  - type: service
+    regex: '\| URL \| (https?://[^\s]+)'

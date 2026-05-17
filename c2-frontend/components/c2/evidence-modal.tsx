@@ -140,25 +140,25 @@ export function EvidenceModal({ isOpen, onClose, backendUrl, selectedEvidenceFil
   return (
     <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
       
       {/* Modal Container - Locked to 70vw */}
-      <div className="relative w-[70vw] h-[70vh] bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative w-[70vw] h-[70vh] bg-background border border-border rounded-lg shadow-2xl overflow-hidden flex flex-col">
         
         {/* Main Body - 30/70 Split */}
         <div className="flex-1 flex overflow-hidden">
           
           {/* Sidebar - 35% */}
-          <div className="w-[35%] border-r border-zinc-800 flex flex-col bg-zinc-950">
-            <div className="p-3 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-              <span className="font-bold text-[10px] tracking-widest text-zinc-400 uppercase">Evidence Explorer</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-zinc-800" onClick={fetchTree}>
+          <div className="w-[35%] border-r border-border flex flex-col bg-background">
+            <div className="p-3 border-b border-border flex justify-between items-center bg-muted/10">
+              <span className="font-bold text-[10px] tracking-widest text-muted-foreground uppercase">Evidence Explorer</span>
+              <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted/20" onClick={fetchTree}>
                 <RefreshCw className={cn("size-3", loadingTree && "animate-spin")} />
               </Button>
             </div>
             <ScrollArea className="flex-1 p-2">
               {Object.entries(tree).length === 0 ? (
-                <div className="text-[10px] text-zinc-600 text-center p-4 italic uppercase">No targets detected</div>
+                <div className="text-[10px] text-muted-foreground text-center p-4 italic uppercase">No targets detected</div>
               ) : (
                 <div className="space-y-1">
                   {Object.entries(tree).map(([target, files]) => {
@@ -167,29 +167,29 @@ export function EvidenceModal({ isOpen, onClose, backendUrl, selectedEvidenceFil
                       <div key={target}>
                         <div className="flex items-center w-full justify-between group">
                           <button
-                            className="flex items-center flex-1 gap-1.5 px-2 py-1 hover:bg-zinc-800/50 rounded-sm text-left transition-colors"
+                            className="flex items-center flex-1 gap-1.5 px-2 py-1 hover:bg-muted/30 rounded-sm text-left transition-colors"
                             onClick={() => toggleFolder(target)}
                           >
-                            {isOpen ? <ChevronDown className="size-3 text-zinc-500" /> : <ChevronRight className="size-3 text-zinc-500" />}
-                            <Folder className="size-3.5 text-blue-400/60" />
-                            <span className="truncate text-[11px] text-zinc-300 font-bold">{target}</span>
+                            {isOpen ? <ChevronDown className="size-3 text-muted-foreground" /> : <ChevronRight className="size-3 text-muted-foreground" />}
+                            <Folder className="size-3.5 text-primary/60" />
+                            <span className="truncate text-[11px] text-muted-foreground font-bold">{target}</span>
                           </button>
-                          <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 hover:text-white mr-1" onClick={() => handleCreateFile(target)}>
-                            <Plus className="size-3 text-zinc-500" />
+                          <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 hover:text-foreground mr-1" onClick={() => handleCreateFile(target)}>
+                            <Plus className="size-3 text-muted-foreground" />
                           </Button>
                         </div>
                         
                         {isOpen && (
-                          <div className="ml-4 mt-0.5 space-y-0.5 border-l border-zinc-800/50 pl-2">
+                          <div className="ml-4 mt-0.5 space-y-0.5 border-l border-border/50 pl-2">
                             {files.length === 0 ? (
-                              <div className="text-[9px] text-zinc-700 py-1 px-2 italic uppercase">No files found</div>
+                              <div className="text-[9px] text-muted-foreground/50 py-1 px-2 italic uppercase">No files found</div>
                             ) : files.map((file) => {
                               const isSelected = selectedFile?.target === target && selectedFile?.file === file.name
                               const isAttached = !!selectedEvidenceFiles.find(f => f.target === target && f.filename === file.name)
                               return (
                                 <div key={file.name} className={cn(
                                   "flex items-center w-full rounded-sm transition-colors group",
-                                  isSelected ? "bg-blue-900/20 text-white" : "hover:bg-zinc-800/50 text-zinc-400"
+                                  isSelected ? "bg-primary/20 text-foreground" : "hover:bg-muted/30 text-muted-foreground"
                                 )}>
                                   <input 
                                     type="checkbox"
@@ -198,16 +198,16 @@ export function EvidenceModal({ isOpen, onClose, backendUrl, selectedEvidenceFil
                                       e.stopPropagation()
                                       onToggleEvidenceFile(target, file.name)
                                     }}
-                                    className="ml-1 rounded border-zinc-700 bg-zinc-900 text-blue-500 cursor-pointer scale-75"
+                                    className="ml-1 rounded border-border bg-muted/20 text-primary cursor-pointer scale-75"
                                   />
                                   <button
                                     className="flex items-center flex-1 gap-1.5 px-2 py-1 text-left text-[10px]"
                                     onClick={() => handleFileClick(target, file.name)}
                                   >
-                                    <FileText className="size-3 text-zinc-500" />
+                                    <FileText className="size-3 text-muted-foreground" />
                                     <span className="truncate">{file.name}</span>
                                   </button>
-                                  <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10 mr-1" onClick={(e) => handleDeleteFile(target, file.name, e)}>
+                                  <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 mr-1" onClick={(e) => handleDeleteFile(target, file.name, e)}>
                                     <Trash2 className="size-3" />
                                   </Button>
                                 </div>
@@ -224,26 +224,26 @@ export function EvidenceModal({ isOpen, onClose, backendUrl, selectedEvidenceFil
           </div>
 
           {/* Content - 65% */}
-          <div className="w-[65%] flex flex-col h-full bg-black overflow-hidden relative">
+          <div className="w-[65%] flex flex-col h-full bg-background overflow-hidden relative">
             {selectedFile ? (
               <>
-                <div className="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between">
+                <div className="px-4 py-2 bg-muted/10 border-b border-border flex items-center justify-between">
                   <div className="flex items-center gap-2 text-[10px] font-mono">
-                    <span className="text-zinc-500">{selectedFile.target}</span>
-                    <span className="text-zinc-700">/</span>
-                    <span className="text-zinc-200 font-bold">{selectedFile.file}</span>
+                    <span className="text-muted-foreground">{selectedFile.target}</span>
+                    <span className="text-muted-foreground/30">/</span>
+                    <span className="text-foreground font-bold">{selectedFile.file}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     {isEditing ? (
-                      <Button variant="outline" size="sm" className="h-6 text-[9px] bg-green-500/10 text-green-400 hover:bg-green-500/20 border-green-500/20" onClick={handleSaveFile}>
+                      <Button variant="outline" size="sm" className="h-6 text-[9px] bg-accent/10 text-accent hover:bg-accent/20 border-accent/20" onClick={handleSaveFile}>
                         <Save className="size-3 mr-1" /> SAVE
                       </Button>
                     ) : (
-                      <Button variant="ghost" size="sm" className="h-6 text-[9px] text-zinc-400 hover:text-white" onClick={() => setIsEditing(true)}>
+                      <Button variant="ghost" size="sm" className="h-6 text-[9px] text-muted-foreground hover:text-foreground" onClick={() => setIsEditing(true)}>
                         EDIT
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-500 hover:text-white" onClick={() => {
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => {
                         const blob = new Blob([fileContent], { type: 'text/plain' })
                         const url = URL.createObjectURL(blob)
                         const a = document.createElement('a')
@@ -251,25 +251,25 @@ export function EvidenceModal({ isOpen, onClose, backendUrl, selectedEvidenceFil
                     }}>
                       <Download className="size-3" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-zinc-500 hover:text-red-400" onClick={onClose}>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={onClose}>
                       <X className="size-3" />
                     </Button>
                   </div>
                 </div>
                 <div className="flex-1 overflow-hidden">
                   {loadingContent ? (
-                    <div className="p-4 text-zinc-600 animate-pulse text-[10px] font-mono uppercase">Streaming data...</div>
+                    <div className="p-4 text-muted-foreground animate-pulse text-[10px] font-mono uppercase">Streaming data...</div>
                   ) : isEditing ? (
                     <textarea
                       value={fileContent}
                       onChange={(e) => setFileContent(e.target.value)}
-                      className="w-full h-full resize-none bg-black text-green-500 font-mono text-[11px] p-6 focus:outline-none focus:ring-0 border-0 leading-relaxed"
+                      className="w-full h-full resize-none bg-background text-term-success font-mono text-[11px] p-6 focus:outline-none focus:ring-0 border-0 leading-relaxed"
                       spellCheck={false}
                     />
                   ) : (
                     <ScrollArea className="h-full">
                       <div className="p-6">
-                        <pre className="text-[11px] text-green-500/90 font-mono whitespace-pre-wrap leading-relaxed">
+                        <pre className="text-[11px] text-term-success/90 font-mono whitespace-pre-wrap leading-relaxed">
                           <code>{fileContent || "BUFFER EMPTY"}</code>
                         </pre>
                       </div>
@@ -278,7 +278,7 @@ export function EvidenceModal({ isOpen, onClose, backendUrl, selectedEvidenceFil
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-zinc-800 gap-2 uppercase">
+              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2 uppercase">
                 <FileText className="size-10 opacity-10" />
                 <p className="text-[10px] font-bold tracking-widest opacity-20">No File Engaged</p>
               </div>
@@ -287,8 +287,8 @@ export function EvidenceModal({ isOpen, onClose, backendUrl, selectedEvidenceFil
         </div>
 
         {/* Global Footer / Close */}
-        <div className="p-2 border-t border-zinc-800 bg-zinc-900/30 flex justify-end shrink-0">
-           <Button variant="ghost" size="sm" className="h-7 text-[10px] font-mono text-zinc-500 hover:text-white" onClick={onClose}>
+        <div className="p-2 border-t border-border bg-muted/5 flex justify-end shrink-0">
+           <Button variant="ghost" size="sm" className="h-7 text-[10px] font-mono text-muted-foreground hover:text-foreground" onClick={onClose}>
              [ EXIT EXPLORER ]
            </Button>
         </div>

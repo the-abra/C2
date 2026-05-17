@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { type Discovery } from "@/lib/api-service";
 
 export type ProcessStatus = 'idle' | 'running' | 'error' | 'completed' | 'killed' | 'failed'
 
-export function useC2Engine(backendUrl: string, enabled: boolean) {
+interface EngineCallbacks {
+  onDiscovery?: (discovery: Discovery) => void;
+  onNoteUpdate?: (target: string) => void;
+  onAIAdvice?: (tool: string, target: string, advice: string) => void;
+}
+
+export function useC2Engine(backendUrl: string, enabled: boolean, currentSessionId: number | null, callbacks?: EngineCallbacks) {
   const [allLogs, setAllLogs] = useState<Record<string, string>>({});
   const [statuses, setStatuses] = useState<Record<string, ProcessStatus>>({});
   const wsRef = useRef<WebSocket | null>(null);
@@ -21,16 +28,31 @@ export function useC2Engine(backendUrl: string, enabled: boolean) {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        
+        // Filter by Session ID if present in message
+        if (data.session_id && currentSessionId && data.session_id !== currentSessionId) {
+          return;
+        }
+
         if (data.type === "log" && data.tool) {
-          setAllLogs((prev) => ({
+          setAllLogs((prev: Record<string, string>) => ({
             ...prev,
             [data.tool]: (prev[data.tool] || "") + data.payload,
           }));
         } else if (data.type === "status" && data.tool) {
-          setStatuses((prev) => ({
+          setStatuses((prev: Record<string, ProcessStatus>) => ({
             ...prev,
             [data.tool]: data.payload as ProcessStatus,
           }));
+        } else if (data.type === "discovery" && data.data) {
+          // Discoveries carry session_id inside data
+          if (data.data.session_id === currentSessionId) {
+            callbacks?.onDiscovery?.(data.data as Discovery);
+          }
+        } else if (data.type === "note_update") {
+          callbacks?.onNoteUpdate?.(data.payload);
+        } else if (data.type === "ai_advice") {
+          callbacks?.onAIAdvice?.(data.tool, data.data?.target || "", data.payload);
         }
       } catch (err) {
         console.error("WS Parse error", err);
@@ -47,12 +69,12 @@ export function useC2Engine(backendUrl: string, enabled: boolean) {
     };
 
     ws.onerror = (err) => {
-      console.error("WS Error", err);
+      console.error("WS Error: Connection failed. Check if backend is running on", backendUrl);
       ws.close();
     };
     
     wsRef.current = ws;
-  }, [backendUrl, enabled]);
+  }, [backendUrl, enabled, callbacks]);
 
   useEffect(() => {
     if (enabled) {
