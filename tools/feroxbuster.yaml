@@ -1,0 +1,20 @@
+name: Feroxbuster
+category: Recon
+description: High-speed, multi-threaded recursive content discovery framework written in Rust.
+binary: feroxbuster
+profiles:
+  - name: Directory Enumeration
+    args: ["-u", "{{TARGET}}", "-n", "--silent"]
+    rationale: "Launches high-performance multi-threaded path scanning without recursive folder crawling."
+  - name: Recursive Deep Scan
+    args: ["-u", "{{TARGET}}", "-d", "3", "-t", "50", "--silent"]
+    rationale: "Recursively drills down into discovered subdirectories up to a depth of 3 folders."
+  - name: CTF Hidden Files
+    args: ["-u", "{{TARGET}}", "-x", "php,txt,html,bak,old,conf,sql,zip,flag,key,log,xml,json", "-d", "2", "--silent"]
+    rationale: "Scans for vital CTF artifacts, developer source backups, and active keys up to 2 directories deep."
+  - name: API Endpoint Discovery
+    args: ["-u", "{{TARGET}}", "-x", "json,xml,js", "-w", "{{WORDLIST}}", "--silent"]
+    rationale: "Targets standard API routes and script formats using custom interface routing directories."
+parsers:
+  - type: service
+    regex: '(https?://[^\s\[\x1b]+)'

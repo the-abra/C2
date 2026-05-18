@@ -14,7 +14,7 @@ type ConnectionState = 'idle' | 'connecting' | 'error'
 const BOOT_LINES = [
   'Initializing C2 kernel modules...',
   'Loading exploit framework v4.2.1...',
-  'Establishing encrypted tunnel...',
+  'Establishing direct tunnel...',
   'Mounting payload filesystem...',
   'Ready.',
 ]
@@ -73,7 +73,7 @@ export function ConnectionOverlay({ onConnect }: ConnectionOverlayProps) {
                 Connect to C2 Backend
               </h1>
               <p className="text-xs text-muted-foreground font-mono">
-                Establish secure REST/WebSocket channel
+                Establish direct REST/WebSocket channel
               </p>
             </div>
           </div>
@@ -142,7 +142,7 @@ export function ConnectionOverlay({ onConnect }: ConnectionOverlayProps) {
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                <Lock className="size-4" />
+                <Wifi className="size-4" />
                 Connect
               </span>
             )}
@@ -150,7 +150,7 @@ export function ConnectionOverlay({ onConnect }: ConnectionOverlayProps) {
 
           {/* Footer note */}
           <p className="text-center text-xs text-muted-foreground font-mono mt-4">
-            All communications are end-to-end encrypted
+            All communications are synchronized in real-time
           </p>
         </div>
       </div>

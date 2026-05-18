@@ -1,0 +1,35 @@
+name: Hydra
+category: Exploitation
+description: Ultra-fast parallelized network login hacker supporting multiple protocols.
+binary: hydra
+profiles:
+  - name: SSH Credential Audit
+    args: ["-L", "{{WORDLIST}}", "-P", "{{WORDLIST}}", "ssh://{{TARGET}}", "-t", "4", "-vV"]
+    rationale: "Launches multi-threaded credential audits against SSH servers using custom wordlists."
+  - name: FTP Credential Audit
+    args: ["-L", "{{WORDLIST}}", "-P", "{{WORDLIST}}", "ftp://{{TARGET}}", "-t", "4", "-vV"]
+    rationale: "Attempts to identify anonymous or weak credentials on FTP file sharing endpoints."
+  - name: HTTP POST Form Crack
+    args: ["-L", "{{WORDLIST}}", "-P", "{{WORDLIST}}", "{{TARGET}}", "http-post-form", "/login:username=^USER^&password=^PASS^:F=incorrect", "-vV"]
+    rationale: "Fuzzes custom HTTP web login forms using structured POST parameters and error signatures."
+  - name: HTTP Basic Authentication
+    args: ["-L", "{{WORDLIST}}", "-P", "{{WORDLIST}}", "{{TARGET}}", "http-get", "/", "-vV"]
+    rationale: "Attempts credential recovery on basic RFC-2617 Base64 authenticated directories."
+  - name: MySQL Administrative Brute
+    args: ["-L", "{{WORDLIST}}", "-P", "{{WORDLIST}}", "mysql://{{TARGET}}", "-t", "2", "-vV"]
+    rationale: "Validates database administrative passwords on exposed TCP port 3306 sockets."
+  - name: SMB Domain Account Audit
+    args: ["-L", "{{WORDLIST}}", "-P", "{{WORDLIST}}", "smb://{{TARGET}}", "-t", "1", "-vV"]
+    rationale: "Verifies local or Active Directory credentials against SMB v1/v2 file servers."
+  - name: RDP Host Access Scan
+    args: ["-L", "{{WORDLIST}}", "-P", "{{WORDLIST}}", "rdp://{{TARGET}}", "-t", "2", "-vV"]
+    rationale: "Audits administrative credentials on Remote Desktop services to identify console takeovers."
+  - name: Telnet Legacy Login Check
+    args: ["-L", "{{WORDLIST}}", "-P", "{{WORDLIST}}", "telnet://{{TARGET}}", "-vV"]
+    rationale: "Validates credentials on legacy cleartext terminal channels."
+  - name: VNC Password Decryption
+    args: ["-P", "{{WORDLIST}}", "vnc://{{TARGET}}", "-vV"]
+    rationale: "Executes password-only dictionary verification against VNC desktop sharing sockets."
+parsers:
+  - type: vuln
+    regex: '\[\d+\]\[([^\]]+)\]\s+host:\s*([^\s]+)\s+login:\s*([^\s]+)\s+password:\s*([^\s]+)'

@@ -1,0 +1,10 @@
+name: Steghide
+category: Forensics
+description: Steganography extraction tool
+binary: steghide
+profiles:
+  - name: Extract Hidden Data
+    args: ["extract", "-sf", "{{TARGET}}", "-p", "", "-f"]
+parsers:
+  - type: vuln
+    regex: 'wrote extracted data to "(.*)"'

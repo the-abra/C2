@@ -1,0 +1,10 @@
+name: ExifTool
+category: Forensics
+description: Read and write meta information in files
+binary: exiftool
+profiles:
+  - name: Extract Metadata
+    args: ["{{TARGET}}"]
+parsers:
+  - type: vuln
+    regex: 'Warning:\s*(.*)'

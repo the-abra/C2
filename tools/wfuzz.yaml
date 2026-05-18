@@ -1,0 +1,10 @@
+name: Wfuzz
+category: Fuzzing
+description: Web application fuzzer
+binary: wfuzz
+profiles:
+  - name: Parameter Fuzzing
+    args: ["-c", "-z", "file,{{WORDLIST}}", "-u", "{{TARGET}}?FUZZ=test"]
+parsers:
+  - type: service
+    regex: 'ID\s+Response\s+Lines\s+Word\s+Chars\s+Payload\n.+\n\d+\s+\d{3}\s+\d+L\s+\d+W\s+\d+Ch\s+"([^"]+)"'

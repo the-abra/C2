@@ -72,13 +72,13 @@ export function ShellPanel({ isOpen, onClose, backendUrl }: ShellPanelProps) {
     }
 
     return () => {
-      if (!isOpen && wsRef.current) {
+      if (wsRef.current) {
         wsRef.current.close()
         wsRef.current = null
-        if (xtermRef.current) {
-          xtermRef.current.dispose()
-          xtermRef.current = null
-        }
+      }
+      if (xtermRef.current) {
+        xtermRef.current.dispose()
+        xtermRef.current = null
       }
     }
   }, [isOpen, backendUrl])

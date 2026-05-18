@@ -1,0 +1,12 @@
+name: Amass
+category: Recon
+description: In-depth subdomain enumeration, passive DNS mapping, and infrastructure visualization.
+binary: amass
+profiles:
+  - name: Passive Domain Scan
+    args: ["enum", "-passive", "-d", "{{TARGET}}", "-silent"]
+  - name: Active Subdomain Scan
+    args: ["enum", "-active", "-d", "{{TARGET}}", "-silent"]
+parsers:
+  - type: domain
+    regex: '^([a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]\.)+[a-zA-Z]{2,}$'

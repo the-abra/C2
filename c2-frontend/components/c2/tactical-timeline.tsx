@@ -7,7 +7,8 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
+import { cn, stripANSI } from '@/lib/utils'
+import { useC2Store } from '@/hooks/use-c2-store'
 
 interface TimelineEvent {
   id: number
@@ -34,8 +35,12 @@ const EVENT_CONFIG: Record<string, any> = {
 function Play(props: any) { return <ChevronRight {...props} /> }
 
 export function TacticalTimeline({ backendUrl, sessionId }: TacticalTimelineProps) {
+  const store = useC2Store()
+  const selectedScenario = store.scenarios.find(s => s.id === store.selectedScenarioId)
   const [events, setEvents] = useState<TimelineEvent[]>([])
   const [loading, setLoading] = useState(true)
+  const [operatorNote, setOperatorNote] = useState('')
+  const [submittingNote, setSubmittingNote] = useState(false)
 
   const fetchTimeline = async () => {
     if (!sessionId) return
@@ -68,8 +73,35 @@ export function TacticalTimeline({ backendUrl, sessionId }: TacticalTimelineProp
     }
   }
 
+  const handleSubmitNote = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!operatorNote.trim() || submittingNote || !sessionId) return
+    setSubmittingNote(true)
+    try {
+      const res = await fetch(`${backendUrl}/api/timeline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          type: 'note_saved',
+          title: 'Operator Entry',
+          description: operatorNote.trim(),
+          metadata: '{}'
+        })
+      })
+      if (res.ok) {
+        setOperatorNote('')
+        fetchTimeline()
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubmittingNote(false)
+    }
+  }
+
   return (
-    <div className="flex flex-col h-full bg-card/30 backdrop-blur-md border-l border-border w-80 shrink-0 relative overflow-hidden group/timeline">
+    <div className="flex flex-col h-full bg-card/30 backdrop-blur-md border-l border-border w-full relative overflow-hidden group/timeline">
       {/* Header */}
       <div className="px-5 py-4 border-b border-border bg-muted/5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -89,6 +121,58 @@ export function TacticalTimeline({ backendUrl, sessionId }: TacticalTimelineProp
       {/* Content */}
       <ScrollArea className="flex-1">
         <div className="p-5 space-y-6 relative">
+          {/* Active Scenario Pipeline Stepper */}
+          {selectedScenario && (
+            <div className="mb-6 p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 relative z-20">
+              <div className="flex items-center justify-between border-b border-primary/10 pb-2">
+                <div className="flex items-center gap-2">
+                  <Zap className="size-3.5 text-primary animate-pulse" />
+                  <span className="text-[10px] font-black font-mono text-primary uppercase tracking-widest">Active Pipeline</span>
+                </div>
+                <button
+                  onClick={() => store.setSelectedScenarioId(null)}
+                  className="text-[9px] font-mono text-muted-foreground/60 hover:text-destructive uppercase tracking-tighter transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+              
+              <div className="flex items-center gap-1.5 justify-between">
+                <div>
+                  <h4 className="text-xs font-black font-mono uppercase tracking-tight text-foreground">{selectedScenario.name}</h4>
+                  <p className="text-[9px] font-mono text-muted-foreground uppercase tracking-tighter mt-0.5 line-clamp-1">{selectedScenario.description}</p>
+                </div>
+              </div>
+
+              {/* Stepper Pipeline */}
+              <div className="pt-2 space-y-2.5">
+                {selectedScenario.steps?.map((step, sIdx) => (
+                  <div key={step.id || sIdx} className="flex items-center gap-3 font-mono text-[10px]">
+                    <div className={cn(
+                      "size-5 rounded-full border flex items-center justify-center font-bold text-[9px] shrink-0",
+                      sIdx === 0
+                        ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/25"
+                        : "bg-muted/10 border-border text-muted-foreground"
+                    )}>
+                      {sIdx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-foreground truncate uppercase">{step.tool_name || `Step ${sIdx + 1}`}</span>
+                        <span className="text-[8px] opacity-40 uppercase tracking-tighter shrink-0">Profile: {step.profile_name || 'Default'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-[8px] text-muted-foreground/60 uppercase">
+                        <span>Propagate: {step.auto_propagate_targets ? 'Auto' : 'Off'}</span>
+                        <span>•</span>
+                        <span>Sync: {step.wait_for_previous ? 'Sync' : 'Async'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Vertical Line */}
           <div className="absolute left-[33px] top-6 bottom-6 w-px bg-border/40" />
 
@@ -114,14 +198,14 @@ export function TacticalTimeline({ backendUrl, sessionId }: TacticalTimelineProp
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className={cn("text-[10px] font-black font-mono uppercase tracking-tight", config.color)}>
-                      {event.title}
+                      {stripANSI(event.title)}
                     </span>
                     <span className="text-[9px] font-mono text-muted-foreground/40 tabular-nums">
                       {new Date(event.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </span>
                   </div>
                   <p className="text-[10px] font-mono text-muted-foreground leading-relaxed">
-                    {event.description}
+                    {stripANSI(event.description)}
                   </p>
                 </div>
               </div>
@@ -130,8 +214,28 @@ export function TacticalTimeline({ backendUrl, sessionId }: TacticalTimelineProp
         </div>
       </ScrollArea>
 
+      {/* Manual Entry Form */}
+      <form onSubmit={handleSubmitNote} className="p-3 border-t border-border bg-[#0a0a0c] flex items-center gap-2">
+        <input
+          type="text"
+          value={operatorNote}
+          onChange={(e) => setOperatorNote(e.target.value)}
+          disabled={submittingNote}
+          placeholder="ENTER OPERATOR NOTE..."
+          className="flex-1 bg-transparent border-0 outline-none text-[10px] font-mono uppercase tracking-tight text-foreground placeholder:text-muted-foreground/30 focus:ring-0"
+        />
+        <Button 
+          type="submit" 
+          variant="ghost" 
+          disabled={!operatorNote.trim() || submittingNote}
+          className="h-6 px-2 text-[9px] font-mono hover:bg-accent/15 text-muted-foreground hover:text-accent shrink-0"
+        >
+          LOG
+        </Button>
+      </form>
+
       {/* Footer Status */}
-      <div className="p-3 border-t border-border bg-muted/5 flex items-center justify-center gap-2">
+      <div className="p-2 border-t border-border bg-muted/5 flex items-center justify-center gap-2">
         <div className="size-1.5 rounded-full bg-accent animate-pulse" />
         <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">Chronology Synchronized</span>
       </div>

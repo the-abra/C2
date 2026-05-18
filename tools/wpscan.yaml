@@ -1,0 +1,16 @@
+name: WPScan
+category: Vulnerability
+description: WordPress Security Scanner
+binary: wpscan
+profiles:
+  - name: Standard Scan
+    args: ["--url", "{{TARGET}}", "--random-user-agent", "--batch", "--stealthy"]
+  - name: Enumerate Users & Vulnerable Plugins
+    args: ["--url", "{{TARGET}}", "-e", "vp,u", "--random-user-agent", "--batch"]
+  - name: Aggressive Vulnerability Sweep
+    args: ["--url", "{{TARGET}}", "-e", "ap,at,tt,cb,dbe", "--random-user-agent", "--batch"]
+parsers:
+  - type: vuln
+    regex: '(?i)\[!\]\s+([^\n]+vulnerable[^\n]+)'
+  - type: service
+    regex: '(?i)WordPress\s+version\s+([0-9.]+)\s+identified'

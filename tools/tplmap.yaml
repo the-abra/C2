@@ -1,0 +1,14 @@
+name: Tplmap
+category: Exploitation
+description: Server-Side Template Injection (SSTI) scanning and exploit engine.
+binary: tplmap
+profiles:
+  - name: Default SSTI Assessment
+    args: ["-u", "{{TARGET}}"]
+    rationale: "Fuzzes HTTP parameters to identify template engine evaluation flaws (Jinja2, Mako, Thymeleaf, etc.)."
+  - name: OS Shell Takeover
+    args: ["-u", "{{TARGET}}", "--os-shell"]
+    rationale: "Attempts remote code execution (RCE) via sandbox breakouts to return an interactive shell."
+parsers:
+  - type: vuln
+    regex: '(tplmap|vulnerable|Engine|SSTI)'

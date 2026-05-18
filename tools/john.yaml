@@ -1,0 +1,20 @@
+name: John the Ripper
+category: Exploitation
+description: Fast and flexible offline password and hash cracker
+binary: john
+profiles:
+  - name: Auto-Detect & Crack
+    args: ["--wordlist=/usr/share/wordlists/rockyou.txt", "{{TARGET}}"]
+  - name: Crack with Fasttrack
+    args: ["--wordlist=/usr/share/wordlists/fasttrack.txt", "{{TARGET}}"]
+  - name: Identify Hash Type
+    args: ["--list=formats", "{{TARGET}}"]
+  - name: Show Cracked Passwords
+    args: ["--show", "{{TARGET}}"]
+  - name: Zip File Crack
+    args: ["--format=zip", "--wordlist=/usr/share/wordlists/rockyou.txt", "{{TARGET}}"]
+  - name: SSH Key Crack
+    args: ["--format=ssh", "--wordlist=/usr/share/wordlists/rockyou.txt", "{{TARGET}}"]
+parsers:
+  - type: vuln
+    regex: '(?i)([^\s:]+):\s*([^\s]+)\s+\(([^)]+)\)'

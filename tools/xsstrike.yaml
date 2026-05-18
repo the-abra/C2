@@ -1,0 +1,10 @@
+name: XSStrike
+category: Vulnerability
+description: Advanced Cross Site Scripting detection suite
+binary: xsstrike
+profiles:
+  - name: Default Scan
+    args: ["-u", "{{TARGET}}", "--crawl"]
+parsers:
+  - type: vuln
+    regex: '\[\+\]\s*Vulnerable\s+Parameter:\s*([a-zA-Z0-9_\-]+)'

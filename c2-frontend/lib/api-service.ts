@@ -20,6 +20,7 @@ export interface AttackProfile {
   tool_id: number
   name: string
   args: string[]
+  rationale?: string
 }
 
 export interface Discovery {
@@ -197,33 +198,29 @@ export async function runScenario(backendUrl: string, sessionId: number, scenari
   return response.json()
 }
 
+export async function createScenario(backendUrl: string, scenario: Omit<Scenario, 'id'>): Promise<Scenario> {
+  const response = await fetch(`${backendUrl}/api/scenarios`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(scenario),
+  })
+  if (!response.ok) throw new Error('Failed to create scenario')
+  return response.json()
+}
+
+export async function deleteScenario(backendUrl: string, id: number): Promise<boolean> {
+  const response = await fetch(`${backendUrl}/api/scenarios?id=${id}`, {
+    method: 'DELETE',
+  })
+  return response.ok
+}
+
 export interface LogMessage {
   id: string
   tool: string
   text: string
   type: 'info' | 'success' | 'warning' | 'error' | 'data' | 'system' | 'cmd'
   timestamp: string
-}
-
-export async function compileSessionContext(backendUrl: string, sessionId: number): Promise<string> {
-  const [discoveries, history] = await Promise.all([
-    fetchDiscoveries(backendUrl, sessionId),
-    fetchHistory(backendUrl, sessionId)
-  ])
-
-  let context = `--- Real-time Tactical Context for Session ${sessionId} ---\n\n`
-  
-  context += "## Identified Targets & Entities:\n"
-  discoveries.forEach(d => {
-    context += `- ${d.type.toUpperCase()}: ${d.value} (Found at: ${d.created_at})\n`
-  })
-
-  context += "\n## Engagement History:\n"
-  history.forEach(h => {
-    context += `- ${h.tool_name} on ${h.target}: ${h.status} (Started: ${h.start_time})\n`
-  })
-
-  return context
 }
 
 export function compileTargetContext(allLogs: Record<string, any[]>): string {

@@ -1,51 +1,41 @@
 #!/bin/bash
-
-# C2 Command Center - Integrated Entrypoint
-# This script builds the frontend, backend, and starts the system.
-
 set -e
 
-# Flags
-QUICK=false
-for arg in "$@"; do
-    if [ "$arg" == "--quick" ]; then
-        QUICK=true
-    fi
-done
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-echo "🚀 Starting C2 Build Process..."
+echo -e "${BLUE}[*] Initializing C2 Tactical Environment Setup...${NC}"
 
-# 1. Dependency Checks
-command -v go >/dev/null 2>&1 || { echo >&2 "❌ Go is not installed. Aborting."; exit 1; }
-command -v npm >/dev/null 2>&1 || { echo >&2 "❌ NPM is not installed. Aborting."; exit 1; }
-
-# 2. Build Frontend
-if [ "$QUICK" = true ] && [ -d "c2-frontend/out" ]; then
-    echo "⏩ Skipping Frontend Build (--quick)"
-else
-    echo "📦 Building Frontend..."
-    cd c2-frontend
-    if [ ! -d "node_modules" ]; then
-        npm install
-    fi
-    npm run build
-    cd ..
-fi
-
-# 3. Build Backend
-echo "🏗️ Building Backend..."
-cd c2-backend
-go mod tidy
-go build -o c2-server ./cmd/server/main.go
+# 1. Build Frontend (Static Export)
+echo -e "${GREEN}[+] Building Frontend (Static Export)...${NC}"
+cd c2-frontend
+pnpm install
+pnpm build
 cd ..
 
-# 4. Launch System
-echo "🛡️ Launching C2 Command Center..."
-
-# Check if port 8080 is occupied
-if lsof -Pi :8080 -sTCP:LISTEN -t >/dev/null ; then
-    echo "⚠️ Warning: Port 8080 is already in use."
-fi
-
+# 2. Build Backend
+echo -e "${GREEN}[+] Building Go Backend...${NC}"
 cd c2-backend
-./c2-server
+go mod tidy
+go build -o ../c2-server cmd/server/main.go
+cd ..
+
+# 3. Run Services
+echo -e "${BLUE}[*] Starting Services...${NC}"
+
+# Trap SIGINT to kill background processes cleanly when stopping the script
+trap 'echo -e "\n${BLUE}[*] Shutting down services...${NC}"; kill 0' SIGINT
+
+echo -e "${GREEN}[+] Serving Frontend on http://localhost:8080${NC}"
+# Use npx serve for production-ready static file serving
+npx serve -s c2-frontend/out -p 8080 &
+
+echo -e "${GREEN}[+] Starting Go Backend on http://localhost:1453${NC}"
+./c2-server &
+
+echo -e "${BLUE}[*] Environment is LIVE. Press Ctrl+C to shutdown.${NC}"
+
+# Wait for background processes to keep script running
+wait

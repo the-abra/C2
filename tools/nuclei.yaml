@@ -1,0 +1,31 @@
+name: Nuclei
+category: Vulnerability
+description: High-performance, template-driven active vulnerability assessment scanner.
+binary: nuclei
+profiles:
+  - name: Technological Profile
+    args: ["-u", "{{TARGET}}", "-silent"]
+    rationale: "Examines HTTP response headers and body content to map active backend components."
+  - name: CVE Active Vulnerability Scan
+    args: ["-u", "{{TARGET}}", "-t", "cves/", "-severity", "medium,high,critical", "-silent"]
+    rationale: "Fires target-safe templated probes corresponding to cataloged Common Vulnerabilities and Exposures."
+  - name: Exposed Management Panels
+    args: ["-u", "{{TARGET}}", "-t", "exposed-panels/", "-silent"]
+    rationale: "Checks for exposed administrative tools like Jenkins, Kibana, phpMyAdmin, and dashboard gateways."
+  - name: Default Logins Audit
+    args: ["-u", "{{TARGET}}", "-t", "default-logins/", "-silent"]
+    rationale: "Tests verified default administrative credentials against popular routers, databases, and setups."
+  - name: CTF Full Vulnerability Sweep
+    args: ["-u", "{{TARGET}}", "-severity", "low,medium,high,critical", "-silent", "-c", "50"]
+    rationale: "Aggressively scans the target using standard community templates to identify low-hanging exploits."
+  - name: Misconfiguration Identification
+    args: ["-u", "{{TARGET}}", "-t", "misconfiguration/", "-silent"]
+    rationale: "Scans for sensitive backup files, debug directories, exposed git indexes, and storage buckets."
+  - name: Domain Takeover Audit
+    args: ["-u", "{{TARGET}}", "-t", "takeovers/", "-silent"]
+    rationale: "Checks for dangling CNAME mappings pointing to decommissioned third-party cloud assets."
+parsers:
+  - type: vuln
+    regex: '\[([^\]]+)\]\s+\[info\]\s+([^\s]+)'
+  - type: vuln
+    regex: '\[([^\]]+)\]\s+\[(low|medium|high|critical)\]\s+([^\s]+)'

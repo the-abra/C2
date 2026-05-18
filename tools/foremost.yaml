@@ -1,0 +1,10 @@
+name: Foremost
+category: Forensics
+description: Forensic file carver
+binary: foremost
+profiles:
+  - name: Carve All Files
+    args: ["-i", "{{TARGET}}", "-v"]
+parsers:
+  - type: service
+    regex: 'File Type:\s*([^\s]+)'

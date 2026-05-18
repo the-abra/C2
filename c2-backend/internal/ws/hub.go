@@ -1,40 +1,48 @@
 package ws
 
 import (
-	"github.com/gorilla/websocket"
-	"log"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all for local dev
+		return true
 	},
 }
 
-type Message struct {
-	Type      string      `json:"type"` // "log", "status", "discovery", "note_update", "ai_advice"
-	SessionID int64       `json:"session_id,omitempty"`
+type WSMessage struct {
+	Type      string      `json:"type"`
 	Tool      string      `json:"tool,omitempty"`
-	Payload   string      `json:"payload,omitempty"`
+	SessionID uint        `json:"session_id,omitempty"`
+	Payload   interface{} `json:"payload,omitempty"`
 	Data      interface{} `json:"data,omitempty"`
 }
 
+type Client struct {
+	Hub  *Hub
+	Conn *websocket.Conn
+	Send chan []byte
+}
+
 type Hub struct {
-	clients    map[*websocket.Conn]bool
-	broadcast  chan Message
-	register   chan *websocket.Conn
-	unregister chan *websocket.Conn
+	clients    map[*Client]bool
+	broadcast  chan []byte
+	register   chan *Client
+	unregister chan *Client
 	mu         sync.Mutex
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		clients:    make(map[*websocket.Conn]bool),
-		broadcast:  make(chan Message),
-		register:   make(chan *websocket.Conn),
-		unregister: make(chan *websocket.Conn),
+		broadcast:  make(chan []byte),
+		register:   make(chan *Client),
+		unregister: make(chan *Client),
+		clients:    make(map[*Client]bool),
 	}
 }
 
@@ -49,16 +57,16 @@ func (h *Hub) Run() {
 			h.mu.Lock()
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
-				client.Close()
+				close(client.Send)
 			}
 			h.mu.Unlock()
 		case message := <-h.broadcast:
 			h.mu.Lock()
 			for client := range h.clients {
-				err := client.WriteJSON(message)
-				if err != nil {
-					log.Printf("error: %v", err)
-					client.Close()
+				select {
+				case client.Send <- message:
+				default:
+					close(client.Send)
 					delete(h.clients, client)
 				}
 			}
@@ -67,57 +75,61 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) BroadcastLog(sessionID int64, tool, payload string) {
-	h.broadcast <- Message{Type: "log", SessionID: sessionID, Tool: tool, Payload: payload}
-}
-
-func (h *Hub) BroadcastStatus(sessionID int64, tool, status string) {
-	h.broadcast <- Message{Type: "status", SessionID: sessionID, Tool: tool, Payload: status}
-}
-
-func (h *Hub) BroadcastDiscovery(discovery interface{}) {
-	h.broadcast <- Message{Type: "discovery", Data: discovery}
-}
-
-func (h *Hub) BroadcastNoteUpdate(sessionID int64, target string) {
-	h.broadcast <- Message{Type: "note_update", SessionID: sessionID, Payload: target}
-}
-
-func (h *Hub) BroadcastAIAdvice(sessionID int64, tool, target, message string) {
-	h.broadcast <- Message{
-		Type:      "ai_advice",
-		SessionID: sessionID,
-		Tool:      tool,
-		Payload:   message,
-		Data:      map[string]string{"target": target},
-	}
-}
-
-func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+func (h *Hub) Broadcast(msg interface{}) {
+	data, err := json.Marshal(msg)
 	if err != nil {
-		log.Println(err)
+		fmt.Printf("Error marshaling broadcast message: %v\n", err)
 		return
 	}
-	h.register <- conn
+	h.broadcast <- data
 }
 
-// WSWriter implements io.Writer to pipe logs to WebSocket
-type WSWriter struct {
-	Hub       *Hub
-	SessionID int64
-	ToolName  string
-}
-
-func (w *WSWriter) Write(p []byte) (n int, err error) {
-	if len(p) == 0 {
-		return 0, nil
+func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Printf("Error upgrading to WS: %v\n", err)
+		return
 	}
-	// Send raw data chunk immediately to allow xterm.js to handle ANSI codes/progress bars
-	w.Hub.BroadcastLog(w.SessionID, w.ToolName, string(p))
-	return len(p), nil
+	client := &Client{Hub: hub, Conn: conn, Send: make(chan []byte, 256)}
+	client.Hub.register <- client
+
+	go client.writePump()
+	go client.readPump()
 }
 
-func (w *WSWriter) Close() error {
-	return nil
+func (c *Client) readPump() {
+	defer func() {
+		c.Hub.unregister <- c
+		c.Conn.Close()
+	}()
+	for {
+		_, _, err := c.Conn.ReadMessage()
+		if err != nil {
+			break
+		}
+	}
+}
+
+func (c *Client) writePump() {
+	defer func() {
+		c.Conn.Close()
+	}()
+	for message := range c.Send {
+		w, err := c.Conn.NextWriter(websocket.TextMessage)
+		if err != nil {
+			return
+		}
+		w.Write(message)
+
+		n := len(c.Send)
+		for i := 0; i < n; i++ {
+			w.Write([]byte{'\n'})
+			w.Write(<-c.Send)
+		}
+
+		if err := w.Close(); err != nil {
+			return
+		}
+	}
+	c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 }

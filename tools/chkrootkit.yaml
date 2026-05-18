@@ -1,0 +1,14 @@
+name: Chkrootkit
+category: Forensics
+description: Local rootkit and backdoor scanner
+binary: chkrootkit
+profiles:
+  - name: Full Rootkit Scan
+    args: ["-q"]
+  - name: Specific Backdoor Verification
+    args: ["-x"]
+parsers:
+  - type: vuln
+    regex: '(?i)INFECTED:\s*([^\n]+)'
+  - type: vuln
+    regex: '(?i)Possible\s+Rootkit\s+([^\n]+)'

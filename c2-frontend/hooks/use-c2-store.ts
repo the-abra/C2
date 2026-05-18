@@ -55,6 +55,10 @@ interface C2State {
   discoveries: Discovery[]
   setDiscoveries: (discoveries: Discovery[]) => void
 
+  // Note State
+  noteUpdateTimestamp: number
+  triggerNoteUpdate: () => void
+
   // Automation State
   autoPilotEnabled: boolean
   setAutoPilotEnabled: (enabled: boolean) => void
@@ -72,8 +76,6 @@ interface C2State {
 
   // Visibility State
   isNotesOpen: boolean
-  isAIPanelOpen: boolean
-  isAIConfigOpen: boolean
   isShellOpen: boolean
   isEvidenceOpen: boolean
   isUploadsOpen: boolean
@@ -81,6 +83,7 @@ interface C2State {
   isReportOpen: boolean
   isAutomationCenterOpen: boolean
   isAssetLibraryOpen: boolean
+  isMissionStudioOpen: boolean
   setModalOpen: (modal: string, isOpen: boolean) => void
 }
 
@@ -130,6 +133,9 @@ export const useC2Store = create<C2State>()(
       discoveries: [],
       setDiscoveries: (discoveries) => set({ discoveries }),
 
+      noteUpdateTimestamp: 0,
+      triggerNoteUpdate: () => set({ noteUpdateTimestamp: Date.now() }),
+
       autoPilotEnabled: false,
       setAutoPilotEnabled: (autoPilotEnabled) => set({ autoPilotEnabled }),
 
@@ -162,8 +168,6 @@ export const useC2Store = create<C2State>()(
       setActiveTerminalId: (activeTerminalId) => set({ activeTerminalId }),
 
       isNotesOpen: false,
-      isAIPanelOpen: false,
-      isAIConfigOpen: false,
       isShellOpen: false,
       isEvidenceOpen: false,
       isUploadsOpen: false,
@@ -171,6 +175,7 @@ export const useC2Store = create<C2State>()(
       isReportOpen: false,
       isAutomationCenterOpen: false,
       isAssetLibraryOpen: false,
+      isMissionStudioOpen: false,
       setModalOpen: (modal, isOpen) => set((state) => ({ 
         ...state,
         [`is${modal.charAt(0).toUpperCase() + modal.slice(1)}Open`]: isOpen 
@@ -183,9 +188,20 @@ export const useC2Store = create<C2State>()(
         backendUrl: state.backendUrl, 
         currentSessionId: state.currentSessionId,
         target: state.target,
+        selectedToolId: state.selectedToolId,
+        selectedProfileId: state.selectedProfileId,
+        selectedScenarioId: state.selectedScenarioId,
+        autoPilotEnabled: state.autoPilotEnabled,
         terminalSessions: state.terminalSessions,
-        activeTerminalId: state.activeTerminalId
+        activeTerminalId: state.activeTerminalId,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Reset transient connection state on rehydration — the
+          // WebSocket engine will re-establish it automatically.
+          state.connected = false
+        }
+      },
     }
   )
 )

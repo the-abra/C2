@@ -141,7 +141,7 @@ export function AssetLibrary({ isOpen, onClose, backendUrl }: AssetLibraryProps)
               {loading ? (
                 <div className="h-96 flex flex-col items-center justify-center gap-6">
                   <Loader2 className="size-10 text-primary animate-spin" />
-                  <span className="text-xs font-mono text-muted-foreground uppercase tracking-[0.4em] animate-pulse">Decrypting Asset Database...</span>
+                  <span className="text-xs font-mono text-muted-foreground uppercase tracking-[0.4em] animate-pulse">Loading Asset Database...</span>
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="h-96 flex flex-col items-center justify-center gap-6 border border-dashed border-border rounded-2xl">

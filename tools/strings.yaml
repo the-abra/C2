@@ -1,0 +1,18 @@
+name: Strings
+category: Forensics
+description: Extract printable strings from binary files — essential CTF first step
+binary: strings
+profiles:
+  - name: Extract All Strings
+    args: ["{{TARGET}}"]
+  - name: Grep for Flag Pattern
+    args: ["{{TARGET}}", "|", "grep", "-iE", "flag\\{|CTF\\{|htb\\{|thm\\{"]
+  - name: Long Strings Only (min 8)
+    args: ["-n", "8", "{{TARGET}}"]
+  - name: Unicode Strings
+    args: ["-e", "l", "{{TARGET}}"]
+parsers:
+  - type: vuln
+    regex: '(?i)((?:flag|CTF|HTB|THM|picoCTF)\{[^}]+\})'
+  - type: service
+    regex: '(?i)(https?://[^\s]+)'

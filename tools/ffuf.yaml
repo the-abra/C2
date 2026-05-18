@@ -7,6 +7,14 @@ profiles:
     args: ["-w", "{{WORDLIST}}", "-u", "{{TARGET}}/FUZZ", "-fc", "404", "-r", "-noninteractive"]
   - name: Parameter Discovery
     args: ["-w", "{{WORDLIST}}", "-u", "{{TARGET}}?FUZZ=test", "-fc", "404", "-noninteractive"]
+  - name: Subdomain Fuzz
+    args: ["-w", "{{WORDLIST}}", "-u", "http://FUZZ.{{TARGET}}", "-fc", "404", "-noninteractive"]
+  - name: Extension Fuzz
+    args: ["-w", "{{WORDLIST}}", "-u", "{{TARGET}}/FUZZ", "-e", ".php,.txt,.html,.bak,.old,.conf,.sql,.zip,.tar.gz", "-fc", "404", "-noninteractive"]
+  - name: CTF Flag Hunt
+    args: ["-w", "{{WORDLIST}}", "-u", "{{TARGET}}/FUZZ", "-e", ".txt,.php,.html,.bak,.old,.flag,.key", "-fc", "404", "-mc", "200,301,302,403", "-noninteractive"]
+  - name: POST Data Fuzz
+    args: ["-w", "{{WORDLIST}}", "-u", "{{TARGET}}", "-X", "POST", "-d", "username=admin&password=FUZZ", "-fc", "401,403", "-noninteractive"]
 parsers:
   - type: service
     regex: '\| URL \| (https?://[^\s]+)'

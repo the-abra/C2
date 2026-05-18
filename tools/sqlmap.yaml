@@ -1,0 +1,42 @@
+name: SQLMap
+category: Vulnerability
+description: Automates the detection and exploitation of SQL injection vulnerabilities and database takeovers.
+binary: sqlmap
+profiles:
+  - name: Heuristic Injection Test
+    args: ["-u", "{{TARGET}}", "--batch", "--banner", "--heuristic-check"]
+    rationale: "Fires fast, safe differential parsing requests to detect SQL syntax vulnerabilities."
+  - name: Database Enumeration
+    args: ["-u", "{{TARGET}}", "--batch", "--dbs"]
+    rationale: "Extracts system schemas to inventory all accessible backend database systems."
+  - name: High-Speed Dump
+    args: ["-u", "{{TARGET}}", "--batch", "--dump", "--threads", "5"]
+    rationale: "Asynchronously dumps database table data rows using up to 5 parallel database query workers."
+  - name: CTF DBMS Auto-Pwn
+    args: ["-u", "{{TARGET}}", "--batch", "--level", "3", "--risk", "2", "--dbs", "--current-user", "--is-dba"]
+    rationale: "Maximizes payloads to test deep union/error-based vectors and audit administrator status."
+  - name: POST Form Data Scan
+    args: ["-u", "{{TARGET}}", "--batch", "--data", "{{PARAMS}}", "--level", "3", "--risk", "2"]
+    rationale: "Inspects HTTP POST request bodies and key-value parameters for backend injection vectors."
+  - name: Cookie-Based Injection
+    args: ["-u", "{{TARGET}}", "--batch", "--cookie", "{{PARAMS}}", "--level", "3"]
+    rationale: "Audits HTTP Cookie headers for state management SQL injection bugs."
+  - name: Interactive OS Shell Takeover
+    args: ["-u", "{{TARGET}}", "--batch", "--os-shell"]
+    rationale: "Attempts to upload a persistent web shell payload to execute interactive target commands."
+  - name: High-Risk Blind SQLi
+    args: ["-u", "{{TARGET}}", "--batch", "--level", "5", "--risk", "3", "--threads", "4"]
+    rationale: "Enables all time-based, stacked-query, and boolean blind payloads for WAF breakout tests."
+  - name: Crawl & Extract Forms
+    args: ["-u", "{{TARGET}}", "--batch", "--crawl", "3", "--forms"]
+    rationale: "Recursively crawls the target up to 3 links deep and fuzzes all discovered HTML inputs."
+  - name: XML/SOAP Payload Audit
+    args: ["-u", "{{TARGET}}", "--batch", "--dbms", "XML"]
+    rationale: "Focuses payload generations purely on structural XML database engines and document formats."
+parsers:
+  - type: vuln
+    regex: '\[INFO\]\s+the\s+back-end\s+DBMS\s+is\s+([^\n]+)'
+  - type: vuln
+    regex: '\[INFO\]\s+heuristic\s+test\s+shows\s+that\s+the\s+target\s+URL\s+might\s+be\s+vulnerable\s+to\s+([^\n]+)'
+  - type: vuln
+    regex: 'available databases \[(\d+)\]'

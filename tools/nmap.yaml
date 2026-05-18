@@ -1,14 +1,41 @@
 name: Nmap
 category: Recon
-description: Network Exploration and Security Auditing
+description: High-fidelity network discovery and security auditing framework.
 binary: nmap
 profiles:
-  - name: Stealth Scan
-    args: ["-sS", "-sV", "-T3", "{{TARGET}}"]
-  - name: Fast Scan (Top 100)
-    args: ["-F", "{{TARGET}}"]
-  - name: Safe NSE Scripts
-    args: ["-sV", "--script", "safe", "{{TARGET}}"]
+  - name: TCP Connect Scan
+    args: ["-sT", "-sV", "-T3", "--open", "{{TARGET}}"]
+    rationale: "Establishes full three-way TCP handshakes to safely probe open ports under unprivileged user contexts."
+  - name: Fast Sweep (Top 100)
+    args: ["-F", "-T4", "{{TARGET}}"]
+    rationale: "Executes ultra-rapid UDP/TCP scans focusing strictly on the top 100 most common services."
+  - name: Safe NSE Audit
+    args: ["-sV", "--script", "safe", "-T3", "{{TARGET}}"]
+    rationale: "Runs non-intrusive Nmap Scripting Engine (NSE) probes to identify technologies safely."
+  - name: Comprehensive Port Mapping
+    args: ["-p-", "-sV", "-T4", "--open", "--min-rate", "1000", "{{TARGET}}"]
+    rationale: "Asynchronously scans all 65,535 TCP ports with service version banner detection."
+  - name: UDP Common Ports
+    args: ["-sU", "--top-ports", "50", "-T4", "--open", "{{TARGET}}"]
+    rationale: "Identifies exposed stateless UDP endpoints like DNS, SNMP, or DHCP on top 50 services."
+  - name: Active Vulnerability Sweep
+    args: ["-sV", "--script", "vuln", "-T4", "{{TARGET}}"]
+    rationale: "Launches targeted active NSE vulnerability scripts to detect misconfigurations."
+  - name: CTF Full-Pwn Discovery
+    args: ["-p-", "-sC", "-sV", "-A", "-T4", "--open", "--min-rate", "1200", "{{TARGET}}"]
+    rationale: "Performs absolute service analysis, default NSE scripts, and system fingerprinting."
+  - name: Active OS Fingerprinting
+    args: ["-O", "-sV", "-T4", "{{TARGET}}"]
+    rationale: "Analyzes TCP/IP stack response parameters to pinpoint target host operating system version."
+  - name: IDS/WAF Evasion & Firewalk
+    args: ["-sS", "-Pn", "-f", "-mtu", "16", "-g", "53", "--data-length", "24", "{{TARGET}}"]
+    rationale: "Evades perimeter sensors using fragmented packets, spoofed source port 53, and MTU padding."
+  - name: Service Banner Grabbing
+    args: ["-sV", "--script", "banner", "{{TARGET}}"]
+    rationale: "Carves raw text header signatures returned from port sockets to extract server versions."
+  - name: Aggressive Service Deep-Dive
+    args: ["-A", "-T4", "-v", "{{TARGET}}"]
+    rationale: "Enables OS detection, version detection, script scanning, and traceroute aggressively."
 parsers:
   - type: ip
     regex: '(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'

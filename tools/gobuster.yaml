@@ -1,0 +1,25 @@
+name: Gobuster
+category: Recon
+description: Directory/File, DNS and Virtual Host brute-forcing utility.
+binary: gobuster
+profiles:
+  - name: Directory Busting
+    args: ["dir", "-u", "{{TARGET}}", "-w", "{{WORDLIST}}", "-t", "20", "-q", "-s", "200,204,301,302,307,403"]
+    rationale: "Fuzzes directory path names against the web server, reporting standard status codes."
+  - name: DNS Subdomain Busting
+    args: ["dns", "-d", "{{TARGET}}", "-w", "{{WORDLIST}}", "-t", "30", "-q"]
+    rationale: "Performs brute-force subdomain discovery against the designated DNS zone."
+  - name: VHost Busting
+    args: ["vhost", "-u", "{{TARGET}}", "-w", "{{WORDLIST}}", "-t", "20", "-q"]
+    rationale: "Tests HTTP Host header variations to uncover hidden virtual hosting configurations."
+  - name: Extension Search
+    args: ["dir", "-u", "{{TARGET}}", "-w", "{{WORDLIST}}", "-x", "php,html,txt,json,zip,bak,old,conf,log", "-t", "20", "-q"]
+    rationale: "Appends target file extensions to wordlist requests to locate active scripts and configuration archives."
+  - name: Silent Crawl Scan
+    args: ["dir", "-u", "{{TARGET}}", "-w", "{{WORDLIST}}", "-t", "10", "--no-error", "-q"]
+    rationale: "Executes path discovery quietly, suppressing active networking connection errors."
+parsers:
+  - type: service
+    regex: '(?i)Found:\s+([^\s]+)\s+\(Status:\s*\d+\)'
+  - type: domain
+    regex: '(?i)Found:\s+([a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+)'

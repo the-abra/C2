@@ -1,0 +1,24 @@
+name: Hashcat
+category: Exploitation
+description: World's fastest GPU-based password and hash cracker
+binary: hashcat
+profiles:
+  - name: MD5 Crack
+    args: ["-m", "0", "{{TARGET}}", "/usr/share/wordlists/rockyou.txt", "--force"]
+  - name: SHA-1 Crack
+    args: ["-m", "100", "{{TARGET}}", "/usr/share/wordlists/rockyou.txt", "--force"]
+  - name: SHA-256 Crack
+    args: ["-m", "1400", "{{TARGET}}", "/usr/share/wordlists/rockyou.txt", "--force"]
+  - name: NTLM Crack
+    args: ["-m", "1000", "{{TARGET}}", "/usr/share/wordlists/rockyou.txt", "--force"]
+  - name: SHA-512crypt (Linux /etc/shadow)
+    args: ["-m", "1800", "{{TARGET}}", "/usr/share/wordlists/rockyou.txt", "--force"]
+  - name: bcrypt Crack
+    args: ["-m", "3200", "{{TARGET}}", "/usr/share/wordlists/rockyou.txt", "--force"]
+  - name: WPA2 Crack
+    args: ["-m", "22000", "{{TARGET}}", "/usr/share/wordlists/rockyou.txt", "--force"]
+  - name: Show Cracked
+    args: ["--show", "{{TARGET}}"]
+parsers:
+  - type: vuln
+    regex: '(?i)([a-f0-9]{32,}):([^\s]+)'

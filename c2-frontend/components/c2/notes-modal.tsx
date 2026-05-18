@@ -17,48 +17,84 @@ interface NotesModalProps {
   sessionId: number
 }
 
-const DEFAULT_TEMPLATE = `# Penetration Test Report
+const DEFAULT_TEMPLATE = `# 🎯 CTF Mission Notes
 
-## Target Information
-- **Target:** \`[TARGET_IP/URL]\`
-- **Date:** ${new Date().toISOString().split('T')[0]}
-- **Tester:** [NAME]
-
----
-
-## Executive Summary
-
-[Brief overview of findings]
+**Target:** \`[TARGET_IP/URL]\`
+**Platform:** [ ] HTB  [ ] THM  [ ] PicoCTF  [ ] Other: ___
+**Date:** ${new Date().toISOString().split('T')[0]}
+**Difficulty:** [ ] Easy  [ ] Medium  [ ] Hard
 
 ---
 
-## Findings
+## 🔍 Open Ports & Services
 
-### Critical
-
-| ID | Vulnerability | CVSS | Status |
-|----|---------------|------|--------|
-| 1  | SQL Injection | 9.8  | Open   |
-
-### High
-
-[Details...]
+| Port | Protocol | Service | Version | Notes |
+|------|----------|---------|---------|-------|
+|  |  |  |  |  |
+|  |  |  |  |  |
 
 ---
 
-## Recommendations
+## 🌐 Web Discovery
 
-1. 
-2. 
-3. 
+- **Tech Stack:** 
+- **CMS/Framework:** 
+- **Hidden Paths Found:** 
+- **Interesting Headers:** 
+- **Login Pages:** 
 
 ---
 
-## Appendix
+## 🔑 Credentials Found
 
-### Raw Tool Output
+| Username | Password | Service | Source |
+|----------|----------|---------|--------|
+|  |  |  |  |
+
+---
+
+## 💥 Vulnerabilities Identified
+
+| Vuln Type | Location | Severity | Exploited? |
+|-----------|----------|----------|-----------|
+|  |  |  |  |
+
+---
+
+## 🚩 Flags Captured
+
+| Flag | Value | Points |
+|------|-------|--------|
+| user.txt |  |  |
+| root.txt |  |  |
+
+---
+
+## ⬆️ Privilege Escalation Path
+
 \`\`\`
-[Paste relevant output here]
+Initial Access →  →  → ROOT
+\`\`\`
+
+**SUID Binaries:**
+**Sudo Rights:**
+**Cron Jobs:**
+**Writable Paths:**
+
+---
+
+## 📋 Next Steps
+
+- [ ] 
+- [ ] 
+- [ ] 
+
+---
+
+## 📝 Raw Notes / Scratch Pad
+
+\`\`\`
+[Paste relevant tool output, hashes to crack, encoded strings, etc.]
 \`\`\`
 `
 

@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input'
 import { useC2Store } from '@/hooks/use-c2-store'
 import { fetchSessions, createSession, deleteSession, type Session } from '@/lib/api-service'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
 
 export function SessionManager() {
+  const { toast } = useToast()
   const { backendUrl, setCurrentSessionId, setSessions, sessions } = useC2Store()
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -38,9 +40,18 @@ export function SessionManager() {
       await createSession(backendUrl, newName, newTarget)
       setNewName('')
       setNewTarget('')
+      toast({
+        title: '✓ Session Initialized',
+        description: `Operation "${newName}" created successfully.`
+      })
       await loadSessions()
-    } catch (e) {
+    } catch (e: any) {
       console.error(e)
+      toast({
+        title: 'Initialization Failed',
+        description: e.message || 'Make sure the session name is unique and the backend is online.',
+        variant: 'destructive'
+      })
     } finally {
       setCreating(false)
     }
@@ -51,9 +62,18 @@ export function SessionManager() {
     if (!confirm('Delete this session and all its tactical data?')) return
     try {
       await deleteSession(backendUrl, id)
+      toast({
+        title: '✓ Session Deleted',
+        description: 'The session archive was permanently deleted.'
+      })
       await loadSessions()
-    } catch (e) {
+    } catch (e: any) {
       console.error(e)
+      toast({
+        title: 'Deletion Failed',
+        description: e.message || 'Could not delete the session.',
+        variant: 'destructive'
+      })
     }
   }
 
@@ -117,28 +137,32 @@ export function SessionManager() {
               <h2 className="text-sm font-bold font-mono uppercase tracking-widest flex items-center gap-2 text-muted-foreground">
                 <Layout className="size-4" /> Active Archive
               </h2>
-              <span className="text-[10px] font-mono text-muted-foreground/40 uppercase font-bold">{sessions.length} Sessions Found</span>
+              <span className="text-[10px] font-mono text-muted-foreground/40 uppercase font-bold">{(sessions || []).length} Sessions Found</span>
             </div>
 
             <div className="grid grid-cols-1 gap-3">
               {loading ? (
                 <div className="h-64 flex flex-col items-center justify-center space-y-4 bg-card/30 border border-dashed border-border rounded-xl">
                   <Loader2 className="size-8 text-primary/40 animate-spin" />
-                  <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Decrypting Session Vault...</p>
+                  <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Synchronizing Active Archive...</p>
                 </div>
-              ) : sessions.length === 0 ? (
+              ) : (sessions || []).length === 0 ? (
                 <div className="h-64 flex flex-col items-center justify-center space-y-4 bg-card/30 border border-dashed border-border rounded-xl">
                   <Layout className="size-12 text-muted-foreground/20" />
                   <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest opacity-40">Archive Empty. Initialize first session to begin.</p>
                 </div>
               ) : (
-                sessions.map((s: Session) => (
+                (sessions || []).map((s: Session) => (
                   <div 
                     key={s.id}
                     onClick={() => {
                       setCurrentSessionId(s.id)
-                      // Pre-fill target if it exists
-                      if (s.target) useC2Store.getState().setTarget(s.target)
+                      // Pre-fill target if it exists, otherwise clear the store target
+                      if (s.target) {
+                        useC2Store.getState().setTarget(s.target)
+                      } else {
+                        useC2Store.getState().setTarget('')
+                      }
                     }}
                     className="group bg-card hover:bg-secondary/50 border border-border hover:border-primary/40 p-4 rounded-xl transition-all cursor-pointer flex items-center gap-4 relative overflow-hidden"
                   >

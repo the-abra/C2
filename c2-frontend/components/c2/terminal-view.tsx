@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Terminal, Copy, Trash2, Download, Zap, Loader2, Sparkles, X } from 'lucide-react'
+import { Copy, Trash2, Download, X, Search, ArrowUp, ArrowDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
@@ -35,31 +35,53 @@ export function TerminalView({
   const lastProcessedLength = useRef<number>(0)
   const lastLogsRef = useRef<string>('')
   
-  // AI Suggestions State
-  const [suggestions, setSuggestions] = useState<string[]>([])
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<number[]>([])
+  const [searchIndex, setSearchIndex] = useState(0)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
 
-  const fetchSuggestions = async () => {
-    if (!sessionId || loadingSuggestions) return
-    setLoadingSuggestions(true)
-    try {
-      const res = await fetch(`${backendUrl}/api/ai/next-steps?session_id=${sessionId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setSuggestions(data || [])
-      }
-    } catch (e) {
-      console.error('Failed to fetch suggestions', e)
-    } finally {
-      setLoadingSuggestions(false)
-    }
-  }
-
+  // Search keyboard shortcut
   useEffect(() => {
-    if (sessionId) {
-      fetchSuggestions()
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'f' && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+        e.preventDefault()
+        setSearchOpen(prev => !prev)
+        setTimeout(() => searchInputRef.current?.focus(), 50)
+      }
+      if (e.key === 'Escape' && searchOpen) {
+        setSearchOpen(false)
+      }
     }
-  }, [sessionId, processStatus])
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [searchOpen])
+
+  const handleSearch = useCallback((query: string) => {
+    if (!query || !logs) { setSearchResults([]); return }
+    const lines = logs.split('\n')
+    const matches: number[] = []
+    const q = query.toLowerCase()
+    lines.forEach((line, i) => {
+      if (line.toLowerCase().includes(q)) matches.push(i)
+    })
+    setSearchResults(matches)
+    setSearchIndex(0)
+    if (matches.length > 0 && xtermRef.current) {
+      xtermRef.current.scrollToLine(Math.max(0, matches[0] - 2))
+    }
+  }, [logs])
+
+  const jumpToResult = useCallback((dir: 'next' | 'prev') => {
+    if (searchResults.length === 0) return
+    let next = dir === 'next' ? searchIndex + 1 : searchIndex - 1
+    if (next >= searchResults.length) next = 0
+    if (next < 0) next = searchResults.length - 1
+    setSearchIndex(next)
+    if (xtermRef.current) {
+      xtermRef.current.scrollToLine(Math.max(0, searchResults[next] - 2))
+    }
+  }, [searchResults, searchIndex])
 
   // Resize Handling to fix width bug
   const handleFit = useCallback(() => {
@@ -123,7 +145,7 @@ export function TerminalView({
       term.dispose()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Empty deps, we handle log updates via useEffect
+  }, []) 
 
   // Sync incremental logs
   useEffect(() => {
@@ -170,41 +192,13 @@ export function TerminalView({
 
   return (
     <div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
-      {/* Suggestions Bar */}
-      <div className="px-4 py-1.5 border-b border-border bg-muted/5 flex items-center gap-3 shrink-0 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-1.5 text-accent shrink-0">
-          {loadingSuggestions ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
-          <span className="text-[9px] font-black font-mono uppercase tracking-widest">Tactical Suggestions:</span>
-        </div>
-        
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-          {suggestions.length === 0 && !loadingSuggestions && (
-            <span className="text-[9px] font-mono text-muted-foreground italic uppercase">Gathering mission intelligence...</span>
-          )}
-          {suggestions.map((cmd, idx) => (
-            <button
-              key={idx}
-              onClick={() => document.dispatchEvent(new CustomEvent('populate-command', { detail: cmd }))}
-              className="flex items-center gap-2 px-2.5 py-1 rounded bg-accent/10 border border-accent/20 hover:border-accent/50 text-[10px] font-mono text-accent whitespace-nowrap transition-all group"
-            >
-              <Zap className="size-2.5 opacity-60 group-hover:animate-pulse" />
-              {cmd}
-            </button>
-          ))}
-        </div>
-
-        <Button variant="ghost" size="sm" className="ml-auto h-6 px-2 text-[9px] font-mono hover:bg-accent/10 text-muted-foreground hover:text-accent" onClick={fetchSuggestions}>
-          REFRESH
-        </Button>
-      </div>
-
       {/* Main Terminal Area */}
       <div className="flex-1 min-h-0 p-2 overflow-hidden bg-[#0a0a0c]">
         <div ref={terminalRef} className="h-full w-full" />
       </div>
       
       {/* Absolute Tool Bar Overlay */}
-      <div className="absolute top-10 right-4 flex items-center gap-1 opacity-20 hover:opacity-100 transition-opacity">
+      <div className="absolute top-4 right-4 flex items-center gap-1 opacity-20 hover:opacity-100 transition-opacity">
         <Button variant="outline" size="sm" onClick={handleCopy} className="h-7 w-7 p-0 bg-background/50 border-border" title="Copy Selection">
           <Copy className="size-3" />
         </Button>
@@ -215,6 +209,39 @@ export function TerminalView({
           <Trash2 className="size-3" />
         </Button>
       </div>
+
+      {/* Search Overlay */}
+      {searchOpen && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-2 bg-background border border-border rounded-lg shadow-xl">
+          <Search className="size-3 text-muted-foreground" />
+          <input
+            ref={searchInputRef}
+            value={searchQuery}
+            onChange={e => { setSearchQuery(e.target.value); handleSearch(e.target.value) }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') jumpToResult(e.shiftKey ? 'prev' : 'next')
+              if (e.key === 'Escape') setSearchOpen(false)
+            }}
+            placeholder="Search output..."
+            className="bg-transparent border-none outline-none text-xs font-mono text-foreground w-48 placeholder:text-muted-foreground/50"
+            autoFocus
+          />
+          {searchResults.length > 0 && (
+            <span className="text-[9px] font-mono text-muted-foreground">
+              {searchIndex + 1}/{searchResults.length}
+            </span>
+          )}
+          <button onClick={() => jumpToResult('prev')} className="p-1 hover:bg-muted rounded">
+            <ArrowUp className="size-3 text-muted-foreground" />
+          </button>
+          <button onClick={() => jumpToResult('next')} className="p-1 hover:bg-muted rounded">
+            <ArrowDown className="size-3 text-muted-foreground" />
+          </button>
+          <button onClick={() => { setSearchOpen(false); setSearchQuery(''); setSearchResults([]) }} className="p-1 hover:bg-muted rounded">
+            <X className="size-3 text-muted-foreground" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

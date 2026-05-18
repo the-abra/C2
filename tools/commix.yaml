@@ -1,0 +1,23 @@
+name: Commix
+category: Vulnerability
+description: Automated OS command injection and exploitation framework.
+binary: commix
+profiles:
+  - name: Default Injection Assessment
+    args: ["--url", "{{TARGET}}", "--batch"]
+    rationale: "Fuzzes GET parameters with command injection indicators to check backend parsing vulnerability."
+  - name: Deep Level 3 Audit
+    args: ["--url", "{{TARGET}}", "--batch", "--level", "3", "--risk", "2"]
+    rationale: "Enables advanced time-based and stacked command shell indicators for hardened breakout checks."
+  - name: Cookie-Based Injection
+    args: ["--url", "{{TARGET}}", "--batch", "--cookie", "{{PARAMS}}", "--level", "3"]
+    rationale: "Audits stateful HTTP Cookie headers for command invocation security flaws."
+  - name: POST Form Data Scan
+    args: ["--url", "{{TARGET}}", "--batch", "--data", "{{PARAMS}}", "--level", "3"]
+    rationale: "Checks request payload structures in HTTP POST forms for command breakout vulnerabilities."
+  - name: Interactive OS Shell Takeover
+    args: ["--url", "{{TARGET}}", "--batch", "--os-shell"]
+    rationale: "Automatically attempts to spawn an interactive shell console back to the command deck."
+parsers:
+  - type: vuln
+    regex: '\[\+\]\s*The\s+target\s+([^\s]+)\s+seems\s+to\s+be\s+vulnerable\s+to\s+command\s+injection'

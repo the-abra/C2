@@ -1,0 +1,12 @@
+name: Dalfox
+category: Fuzzing
+description: Parameter Analysis and XSS scanner
+binary: dalfox
+profiles:
+  - name: Default Scan
+    args: ["url", "{{TARGET}}", "--silence"]
+parsers:
+  - type: vuln
+    regex: '\[\s*POC\s*\]\s*\[[^\]]+\]\s*(https?://[^\s]+)'
+  - type: vuln
+    regex: '\[\s*VULN\s*\]\s*\[[^\]]+\]\s*(https?://[^\s]+)'

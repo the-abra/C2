@@ -1,0 +1,12 @@
+name: Nikto
+category: Web Vulnerability
+description: Web server scanner that performs comprehensive tests against web servers for multiple items, including over 6700 potentially dangerous files/programs.
+binary: nikto
+profiles:
+  - name: Default Scan
+    args: ["-h", "{{TARGET}}", "-Tuning", "123b", "-nossl"]
+  - name: Full Scan
+    args: ["-h", "{{TARGET}}", "-Tuning", "x"]
+parsers:
+  - type: vuln
+    regex: '(OSVDB|vulnerable|injection|headers|Apache)'

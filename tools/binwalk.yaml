@@ -1,0 +1,12 @@
+name: Binwalk
+category: Forensics
+description: Tool for searching binary images for embedded files and executable code
+binary: binwalk
+profiles:
+  - name: Analyze Image
+    args: ["{{TARGET}}"]
+  - name: Extract Files
+    args: ["-e", "{{TARGET}}"]
+parsers:
+  - type: service
+    regex: '([a-zA-Z0-9-\s]+filesystem.*)'

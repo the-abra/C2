@@ -1,0 +1,14 @@
+name: GoSpider
+category: Recon
+description: Fast web spider written in Go
+binary: gospider
+profiles:
+  - name: Standard Web Spidering
+    args: ["-s", "{{TARGET}}", "-d", "2", "-c", "10", "--subs"]
+  - name: Deep Crawl & JS Parsing
+    args: ["-s", "{{TARGET}}", "-d", "4", "-c", "20", "--subs", "--include-other-source"]
+parsers:
+  - type: service
+    regex: '(?i)\[url\]\s+-\s+([^\s]+)'
+  - type: domain
+    regex: '(?i)\[subdomain\]\s+-\s+([a-zA-Z0-9-]+\.[a-zA-Z0-9.-]+)'

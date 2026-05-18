@@ -9,7 +9,7 @@ echo "🔧 Starting Tool Installation..."
 
 # 1. Update & Install system dependencies
 sudo apt-get update
-sudo apt-get install -y git python3 python3-pip golang-go nmap gobuster ffuf nikto hydra sqlmap foremost binwalk steghide tshark curl
+sudo apt-get install -y git python3 python3-pip golang-go nmap gobuster ffuf nikto hydra sqlmap foremost binwalk steghide tshark curl amass foremost steghide masscan whatweb exiftool python3-wfuzz
 
 # 2. ProjectDiscovery Tools (via Go)
 echo "🚀 Installing ProjectDiscovery tools..."
@@ -23,12 +23,15 @@ go install github.com/hahwul/dalfox/v2@latest
 # Amass installation (binary usually preferred)
 # sudo snap install amass # Or use go install
 
-# 4. Tplmap
+# 4. Tplmap & Arjun
 if [ ! -d "/opt/tplmap" ]; then
     echo "🚀 Installing Tplmap..."
     sudo git clone https://github.com/epinna/tplmap.git /opt/tplmap
     sudo pip3 install -r /opt/tplmap/requirements.txt
 fi
+
+echo "🚀 Installing Arjun..."
+sudo pip3 install arjun
 
 # 5. Move Go binaries to /usr/local/bin for global access if needed
 # or just ensure ~/go/bin is in PATH

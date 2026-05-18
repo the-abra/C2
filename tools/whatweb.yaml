@@ -1,0 +1,12 @@
+name: WhatWeb
+category: Recon
+description: Next-generation web characterizer
+binary: whatweb
+profiles:
+  - name: Standard Fingerprint
+    args: ["{{TARGET}}", "--color=never"]
+parsers:
+  - type: service
+    regex: 'HTTP\s+Headers\[([^\]]+)\]'
+  - type: service
+    regex: 'Title\[([^\]]+)\]'

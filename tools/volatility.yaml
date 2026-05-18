@@ -1,0 +1,18 @@
+name: Volatility
+category: Forensics
+description: Advanced Memory Forensics Framework
+binary: vol
+profiles:
+  - name: List Active Connections (NetScan)
+    args: ["-f", "{{TARGET}}", "windows.netscan.NetScan"]
+  - name: Process List Analysis (PsList)
+    args: ["-f", "{{TARGET}}", "windows.pslist.PsList"]
+  - name: Carve Dumped Files (DumpFiles)
+    args: ["-f", "{{TARGET}}", "windows.dumpfiles.DumpFiles"]
+  - name: Process Command Lines (CmdLine)
+    args: ["-f", "{{TARGET}}", "windows.cmdline.CmdLine"]
+parsers:
+  - type: ip
+    regex: '(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+  - type: service
+    regex: '(?i)PID\s+(\d+)\s+([a-zA-Z0-9._-]+)'

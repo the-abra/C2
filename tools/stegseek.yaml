@@ -1,0 +1,16 @@
+name: Stegseek
+category: Forensics
+description: Blazing fast steghide cracker using wordlists
+binary: stegseek
+profiles:
+  - name: Crack with Rockyou
+    args: ["{{TARGET}}", "/usr/share/wordlists/rockyou.txt"]
+  - name: Crack with Fasttrack
+    args: ["{{TARGET}}", "/usr/share/wordlists/fasttrack.txt"]
+  - name: Extract with Empty Password
+    args: ["{{TARGET}}", "-p", ""]
+parsers:
+  - type: vuln
+    regex: '(?i)found\s+passphrase:\s+"([^"]*)"'
+  - type: service
+    regex: '(?i)wrote\s+extracted\s+data\s+to\s+([^\s]+)'

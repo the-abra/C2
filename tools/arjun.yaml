@@ -1,0 +1,10 @@
+name: Arjun
+category: Fuzzing
+description: HTTP parameter discovery suite
+binary: arjun
+profiles:
+  - name: Default Scan
+    args: ["-u", "{{TARGET}}", "--stable"]
+parsers:
+  - type: service
+    regex: 'parameters\s+found:\s*([^\n]+)'

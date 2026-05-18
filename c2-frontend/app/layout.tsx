@@ -23,6 +23,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`${geist.variable} ${geistMono.variable}`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined') {
+                window.alert = function() { console.log('[Blocked Alert]:', ...arguments); };
+                window.confirm = function() { console.log('[Blocked Confirm]:', ...arguments); return true; };
+                window.prompt = function() { console.log('[Blocked Prompt]:', ...arguments); return null; };
+              }
+            `,
+          }}
+        />
+      </head>
       <body className="font-sans antialiased min-h-screen overflow-hidden bg-background text-foreground transition-colors duration-300">
         <ThemeProvider
           attribute="class"
