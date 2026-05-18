@@ -3,6 +3,7 @@ package engine
 import (
 	"bufio"
 	"fmt"
+	"net/url"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -39,9 +40,10 @@ func (e *ExecutionEngine) RunTool(sessionID uint, tool models.Tool, profile mode
 	}
 	repository.Store.AddHistory(&history)
 
+	cleanedTarget := cleanTarget(target, tool.DefaultBinaryName)
 	args := make([]string, len(profile.Args))
 	for i, arg := range profile.Args {
-		res := strings.ReplaceAll(arg, "{{TARGET}}", target)
+		res := strings.ReplaceAll(arg, "{{TARGET}}", cleanedTarget)
 		for k, v := range params {
 			res = strings.ReplaceAll(res, fmt.Sprintf("{{%s}}", strings.ToUpper(k)), v)
 		}
@@ -171,4 +173,63 @@ func (e *ExecutionEngine) runParsers(sessionID uint, historyID uint, tool models
 			})
 		}
 	}
+}
+
+func cleanTarget(target string, binary string) string {
+	target = strings.TrimSpace(target)
+	if target == "" {
+		return target
+	}
+
+	urlBasedTools := map[string]bool{
+		"nikto":       true,
+		"sqlmap":      true,
+		"whatweb":     true,
+		"gobuster":    true,
+		"feroxbuster": true,
+		"wpscan":      true,
+		"xsstrike":    true,
+		"ffuf":        true,
+		"commix":      true,
+		"dalfox":      true,
+		"wfuzz":       true,
+		"gospider":    true,
+		"arjun":       true,
+	}
+
+	isURLBased := urlBasedTools[strings.ToLower(binary)]
+
+	if isURLBased {
+		// Ensure it has http:// or https:// scheme
+		if !strings.HasPrefix(target, "http://") && !strings.HasPrefix(target, "https://") {
+			return "http://" + target
+		}
+		return target
+	}
+
+	// For host-based tools (nmap, masscan, ping, hydra, amass, subfinder, etc.)
+	// If it has http:// or https://, parse it as URL and extract host
+	if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
+		u, err := url.Parse(target)
+		if err == nil {
+			host := u.Host
+			// Strip port if present
+			if idx := strings.Index(host, ":"); idx != -1 {
+				host = host[:idx]
+			}
+			return host
+		}
+	} else {
+		// If it's a domain/IP with a path, e.g., "192.168.1.1/index.php" or "vulnweb.com/path"
+		// Strip the path
+		if idx := strings.Index(target, "/"); idx != -1 {
+			target = target[:idx]
+		}
+		// Strip port if present
+		if idx := strings.Index(target, ":"); idx != -1 {
+			target = target[:idx]
+		}
+	}
+	
+	return target
 }
